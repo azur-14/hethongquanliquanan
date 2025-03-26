@@ -1,21 +1,16 @@
 import 'package:flutter/material.dart';
-
 class FoodItemCard extends StatelessWidget {
   final String name;
-  final String id;
   final String price;
   final String image;
   final int quantity;
-  final String? orderId;
   final Function(int) onQuantityChanged;
 
   FoodItemCard({
-    final String id;
     required this.name,
     required this.price,
     required this.image,
     required this.quantity,
-    this.orderId,
     required this.onQuantityChanged,
   });
 
