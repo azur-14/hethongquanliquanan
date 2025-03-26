@@ -4,6 +4,7 @@ import 'menu.dart';
 import 'bill.dart';
 import 'KitchenMenuScreen.dart';
 import 'KitchenOrderScreen.dart';
+import 'thongke.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -20,7 +21,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
         useMaterial3: true,
       ),
-      home: KitchenOrderScreen(),// Đặt WelcomeScreen làm trang chính
+      home: WelcomeScreen(),// Đặt WelcomeScreen làm trang chính
     );
   }
 }

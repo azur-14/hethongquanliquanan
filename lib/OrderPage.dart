@@ -3,22 +3,34 @@ import 'Sidebar.dart';
 import 'FoodDetailMenu.dart';
 
 class OrderPage extends StatefulWidget {
+  final String role;
+  final String? table;
+
+  const OrderPage({required this.role, this.table});
+
   @override
   _OrderPageState createState() => _OrderPageState();
 }
 
 class _OrderPageState extends State<OrderPage> {
+  late String selectedTable;
+  List<String> tables = ['Bàn 001', 'Bàn 002', 'Bàn 003', 'Bàn 004'];
   String selectedSidebarItem = "Đơn món";
 
   List<Map<String, dynamic>> orderSummary = [
     {"name": "Avocado and Egg Toast", "price": 10.00, "quantity": 2, "image": "assets/food.jpg", "status": "Chờ xử lý"},
-    {"name": "Curry Salmon", "price": 10.00, "quantity": 2, "image": "assets/food.jpg", "status": "Đang thực hiện"},
-    {"name": "Yogurt and fruits", "price": 5.00, "quantity": 1, "image": "assets/food.jpg", "status": "Lên món"},
+    {"name": "Curry Salmon", "price": 10.00, "quantity": 2, "image": "assets/food.jpg", "status": "Chờ xử lý"},
+    {"name": "Yogurt and fruits", "price": 5.00, "quantity": 1, "image": "assets/food.jpg", "status": "Chờ xử lý"},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    selectedTable = widget.table ?? tables.first;
+  }
 
   void _openEditModal(BuildContext context, int index) {
     if (orderSummary[index]["status"] != "Chờ xử lý") return;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -40,10 +52,26 @@ class _OrderPageState extends State<OrderPage> {
 
   void _removeItem(int index) {
     if (orderSummary[index]["status"] != "Chờ xử lý") return;
-
     setState(() {
       orderSummary.removeAt(index);
     });
+  }
+
+  void _placeOrder() {
+    setState(() {
+      for (var item in orderSummary) {
+        if (item['status'] == 'Chờ xử lý') {
+          item['status'] = 'Đang thực hiện';
+        }
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Đã đặt món thành công!"),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   @override
@@ -51,6 +79,7 @@ class _OrderPageState extends State<OrderPage> {
     double subtotal = orderSummary.fold(0, (sum, item) => sum + (item["price"] * item["quantity"]));
     double tax = 5.00;
     double totalPrice = subtotal + tax;
+    bool hasItemsToPlace = orderSummary.any((item) => item['status'] == 'Chờ xử lý');
 
     return Scaffold(
       drawer: MediaQuery.of(context).size.width < 800
@@ -61,6 +90,8 @@ class _OrderPageState extends State<OrderPage> {
             selectedSidebarItem = item;
           });
         },
+        role: widget.role,
+        table: selectedTable,
       )
           : null,
       body: Row(
@@ -73,26 +104,43 @@ class _OrderPageState extends State<OrderPage> {
                   selectedSidebarItem = item;
                 });
               },
+              role: widget.role,
+              table: selectedTable,
             ),
-
-          // 🔹 Danh sách món ăn đã đặt
           Expanded(
             child: Padding(
               padding: EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Bàn 001", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  // 🔸 Tên bàn
+                  widget.role == "Nhân viên phục vụ" || widget.role == "Quản lý"
+
+                      ? DropdownButton<String>(
+                    value: selectedTable,
+                    items: tables.map((table) {
+                      return DropdownMenuItem(
+                        value: table,
+                        child: Text(table, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedTable = value!;
+                      });
+                    },
+                  )
+                      : Text(selectedTable, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
 
                   SizedBox(height: 10),
 
-                  // 🔹 Danh sách món ăn trong đơn
+                  // 🔸 Danh sách món
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
                         children: orderSummary.asMap().entries.map((entry) {
                           int index = entry.key;
-                          Map<String, dynamic> item = entry.value;
+                          var item = entry.value;
                           return OrderItemCard(
                             name: item["name"],
                             price: item["price"],
@@ -111,7 +159,7 @@ class _OrderPageState extends State<OrderPage> {
             ),
           ),
 
-          // 🔹 **Giỏ hàng bên phải**
+          // 🔸 Giỏ hàng bên phải
           if (MediaQuery.of(context).size.width >= 1100)
             Container(
               width: MediaQuery.of(context).size.width * 0.3,
@@ -124,32 +172,44 @@ class _OrderPageState extends State<OrderPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("Đơn của bạn", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-
                   SizedBox(height: 10),
-
                   Divider(),
 
-                  // 🔹 **Danh sách món ăn trong giỏ hàng**
+                  // 🔹 Chi tiết đơn
                   Column(
                     children: orderSummary.map((item) {
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Image.asset(item["image"], width: 40, height: 40, fit: BoxFit.cover),
-                              SizedBox(width: 10),
-                              Text(item["name"], style: TextStyle(fontSize: 14)),
-                            ],
-                          ),
-                          Text("x${item["quantity"]}  \$${item["price"]}", style: TextStyle(fontSize: 14)),
-                        ],
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Image.asset(item["image"], width: 40, height: 40),
+                                SizedBox(width: 10),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(item["name"], style: TextStyle(fontSize: 14)),
+                                    Text(item["status"],
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: item["status"] == "Đang thực hiện"
+                                              ? Colors.orange
+                                              : Colors.grey,
+                                        )),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            Text("x${item["quantity"]}  \$${item["price"].toStringAsFixed(2)}",
+                                style: TextStyle(fontSize: 14)),
+                          ],
+                        ),
                       );
                     }).toList(),
                   ),
-
                   Divider(),
-
                   Text("Subtotal:  \$${subtotal.toStringAsFixed(2)}", style: TextStyle(fontSize: 14)),
                   Text("Tax:  \$${tax.toStringAsFixed(2)}", style: TextStyle(fontSize: 14)),
                   SizedBox(height: 10),
@@ -158,22 +218,23 @@ class _OrderPageState extends State<OrderPage> {
 
                   Spacer(),
 
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  if (hasItemsToPlace)
+                    ElevatedButton(
+                      onPressed: _placeOrder,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text("Đặt", style: TextStyle(fontSize: 16, color: Colors.white)),
+                        ],
+                      ),
                     ),
-                    onPressed: () {},
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text("Đặt thêm món", style: TextStyle(color: Colors.white, fontSize: 16)),
-                        SizedBox(width: 5),
-                        Icon(Icons.arrow_forward, color: Colors.white, size: 18),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -183,7 +244,7 @@ class _OrderPageState extends State<OrderPage> {
   }
 }
 
-// 🔹 **Món ăn đã đặt**
+// 🔸 Widget hiển thị từng món
 class OrderItemCard extends StatelessWidget {
   final String name;
   final double price;
@@ -193,7 +254,7 @@ class OrderItemCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  OrderItemCard({
+  const OrderItemCard({
     required this.name,
     required this.price,
     required this.image,
@@ -204,9 +265,15 @@ class OrderItemCard extends StatelessWidget {
   });
 
   Color _getStatusColor() {
-    if (status == "Đang thực hiện") return Colors.orange;
-    if (status == "Lên món") return Colors.green;
-    return Colors.grey;
+    switch (status) {
+      case "Đang thực hiện":
+        return Colors.orange;
+      case "Lên món":
+        return Colors.green;
+      case "Chờ xử lý":
+      default:
+        return Colors.grey;
+    }
   }
 
   @override
@@ -217,7 +284,7 @@ class OrderItemCard extends StatelessWidget {
       padding: EdgeInsets.all(15),
       margin: EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: status == "Đang thực hiện" ? Colors.orange.shade50 : Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)],
       ),
@@ -238,8 +305,14 @@ class OrderItemCard extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(icon: Icon(Icons.edit, color: isEditable ? Colors.orange : Colors.grey), onPressed: isEditable ? onEdit : null),
-          IconButton(icon: Icon(Icons.delete, color: isEditable ? Colors.red : Colors.grey), onPressed: isEditable ? onDelete : null),
+          IconButton(
+            icon: Icon(Icons.edit, color: isEditable ? Colors.orange : Colors.grey),
+            onPressed: isEditable ? onEdit : null,
+          ),
+          IconButton(
+            icon: Icon(Icons.delete, color: isEditable ? Colors.red : Colors.grey),
+            onPressed: isEditable ? onDelete : null,
+          ),
         ],
       ),
     );

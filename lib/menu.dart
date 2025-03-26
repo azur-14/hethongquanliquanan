@@ -3,18 +3,6 @@ import 'FoodDetailMenu.dart';
 import 'FoodItemCard.dart';
 import 'Sidebar.dart';
 
-class EatEasyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'EatEasy',
-      theme: ThemeData(primaryColor: Colors.orange),
-      home: HomeScreen(role: 'Khách hàng', table: 'Bàn 001'), // test thử vai trò ở đây
-    );
-  }
-}
-
 class HomeScreen extends StatefulWidget {
   final String role;
   final String? table;
@@ -47,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    selectedTable = widget.table ?? "Bàn 001";
+    selectedTable = widget.table ?? tables.first;
   }
 
   @override
@@ -61,6 +49,8 @@ class _HomeScreenState extends State<HomeScreen> {
             selectedSidebarItem = item;
           });
         },
+        role: widget.role,
+        table: selectedTable,
       )
           : null,
       body: Row(
@@ -73,6 +63,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   selectedSidebarItem = item;
                 });
               },
+              role: widget.role,
+              table: selectedTable,
             ),
           Expanded(
             child: Padding(
@@ -84,7 +76,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      widget.role == "Nhân viên phục vụ"
+                      widget.role == "Nhân viên phục vụ" || widget.role == "Quản lý"
+
                           ? DropdownButton<String>(
                         value: selectedTable,
                         items: tables.map((table) {
@@ -107,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
 
-                      // 🔎 Ô tìm kiếm
+                      // 🔍 Tìm kiếm
                       Container(
                         width: 300,
                         padding: EdgeInsets.symmetric(horizontal: 10),
@@ -133,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   SizedBox(height: 20),
 
-                  // 🔹 Bộ lọc món ăn
+                  // 🔹 Bộ lọc
                   Row(
                     children: filters.map((filter) {
                       return Padding(
@@ -204,4 +197,3 @@ class FilterButton extends StatelessWidget {
     );
   }
 }
- 

@@ -1,19 +1,44 @@
 import 'package:flutter/material.dart';
 
 class BillScreen extends StatelessWidget {
-  final String tableName = 'Bàn 001';
-  final List<Map<String, dynamic>> orderedItems = [
-    {'name': 'Avocado and Egg Toast', 'qty': 2, 'price': 10.80, 'image': 'assets/food.jpg'},
-    {'name': 'Curry Salmon', 'qty': 2, 'price': 9.60, 'image': 'assets/food.jpg'},
-    {'name': 'Yogurt and Fruits', 'qty': 1, 'price': 6.00, 'image': 'assets/food.jpg'},
+  final String billId;
+
+  const BillScreen({Key? key, required this.billId}) : super(key: key);
+
+  // Dữ liệu mẫu
+  final List<Map<String, dynamic>> allBills = const [
+    {
+      'billId': '#HD001',
+      'table': 'Bàn 001',
+      'items': [
+        {'name': 'Avocado and Egg Toast', 'qty': 2, 'price': 10.80, 'image': 'assets/food.jpg'},
+        {'name': 'Curry Salmon', 'qty': 2, 'price': 9.60, 'image': 'assets/food.jpg'},
+        {'name': 'Yogurt and Fruits', 'qty': 1, 'price': 6.00, 'image': 'assets/food.jpg'},
+      ]
+    },
+    {
+      'billId': '#HD002',
+      'table': 'Bàn 002',
+      'items': [
+        {'name': 'Mac and Cheese', 'qty': 1, 'price': 12.00, 'image': 'assets/food.jpg'},
+        {'name': 'Orange Juice', 'qty': 2, 'price': 4.50, 'image': 'assets/food.jpg'},
+      ]
+    },
   ];
 
   @override
   Widget build(BuildContext context) {
-    double subtotal = orderedItems.fold(
-      0,
-          (sum, item) => sum + (item['qty'] * item['price']),
-    );
+    final bill = allBills.firstWhere((b) => b['billId'] == billId);
+
+    if (bill == null) {
+      return Scaffold(
+        body: Center(child: Text("Không tìm thấy hóa đơn $billId")),
+      );
+    }
+
+    final String tableName = bill['table'];
+    final List<Map<String, dynamic>> orderedItems = List<Map<String, dynamic>>.from(bill['items']);
+    double subtotal = orderedItems.fold(0, (sum, item) => sum + (item['qty'] * item['price']));
     double tax = 5.0;
     double total = subtotal + tax;
 
@@ -21,7 +46,7 @@ class BillScreen extends StatelessWidget {
       backgroundColor: Colors.grey.shade100,
       body: Row(
         children: [
-          // Sidebar (tuỳ bạn tái sử dụng component)
+          // Sidebar
           Container(
             width: 200,
             color: Color(0xFF2F2F3E),
@@ -47,7 +72,7 @@ class BillScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('🧾 $tableName', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text('🧾 $tableName - $billId', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   SizedBox(height: 20),
 
                   // Danh sách món

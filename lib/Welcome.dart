@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'menu.dart';
+import 'KitchenMenuScreen.dart';
+import 'thongke.dart';
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -32,7 +35,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Ảnh món ăn - góc trên trái
+          // Ảnh góc trên trái
           Positioned(
             top: 0,
             left: 0,
@@ -41,7 +44,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               width: MediaQuery.of(context).size.width * 0.4,
             ),
           ),
-          // Ảnh món ăn - góc dưới phải
+          // Ảnh góc dưới phải
           Positioned(
             bottom: 0,
             right: 0,
@@ -50,6 +53,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               width: MediaQuery.of(context).size.width * 0.4,
             ),
           ),
+
           // Nội dung chính
           Column(
             children: [
@@ -76,109 +80,106 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         ),
                         SizedBox(height: 20),
 
-                        // Chọn vai trò (thu gọn chiều rộng)
-                        Center(
-                          child: Container(
-                            width: MediaQuery.of(context).size.width * 0.6,
-                            child: DropdownButtonFormField<String>(
-                              value: selectedRole,
-                              decoration: InputDecoration(
-                                labelText: 'Chọn vai trò của bạn',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              ),
-                              items: roles.map((role) {
-                                return DropdownMenuItem<String>(
-                                  value: role,
-                                  child: Text(role),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  selectedRole = value;
-                                  if (value != 'Khách hàng') {
-                                    selectedTable = null;
-                                  }
-                                });
-                              },
+                        // Chọn vai trò
+                        Container(
+                          width: MediaQuery.of(context).size.width * 0.6,
+                          child: DropdownButtonFormField<String>(
+                            value: selectedRole,
+                            decoration: InputDecoration(
+                              labelText: 'Chọn vai trò của bạn',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             ),
+                            items: roles.map((role) {
+                              return DropdownMenuItem(value: role, child: Text(role));
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                selectedRole = value;
+                                if (value != 'Khách hàng') {
+                                  selectedTable = null;
+                                }
+                              });
+                            },
                           ),
                         ),
 
-                        // Nếu chọn Khách hàng thì hiện dropdown chọn bàn (cũng thu gọn)
+                        // Nếu là khách hàng → chọn bàn
                         if (selectedRole == 'Khách hàng') ...[
                           SizedBox(height: 16),
-                          Center(
-                            child: Container(
-                              width: MediaQuery.of(context).size.width * 0.6,
-                              child: DropdownButtonFormField<String>(
-                                value: selectedTable,
-                                decoration: InputDecoration(
-                                  labelText: 'Chọn bàn của bạn',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                ),
-                                items: tables.map((table) {
-                                  return DropdownMenuItem<String>(
-                                    value: table,
-                                    child: Text(table),
-                                  );
-                                }).toList(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedTable = value;
-                                  });
-                                },
+                          Container(
+                            width: MediaQuery.of(context).size.width * 0.6,
+                            child: DropdownButtonFormField<String>(
+                              value: selectedTable,
+                              decoration: InputDecoration(
+                                labelText: 'Chọn bàn của bạn',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               ),
+                              items: tables.map((table) {
+                                return DropdownMenuItem(value: table, child: Text(table));
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedTable = value;
+                                });
+                              },
                             ),
                           ),
                         ],
 
                         SizedBox(height: 20),
-                        // Nút Get Started (cũng thu gọn)
-                        Center(
-                          child: Container(
-                            width: MediaQuery.of(context).size.width * 0.5,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                padding: EdgeInsets.symmetric(vertical: 15),
-                                elevation: 5,
-                                shadowColor: Colors.orangeAccent,
-                              ),
-                              onPressed: () {
-                                if (selectedRole == null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Vui lòng chọn vai trò')),
-                                  );
-                                } else if (selectedRole == 'Khách hàng' && selectedTable == null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Vui lòng chọn bàn cho khách hàng')),
-                                  );
-                                } else {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => HomeScreen(
-                                        role: selectedRole!,
-                                        table: selectedRole == 'Khách hàng' ? selectedTable : null,
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
-                              child: Text(
-                                'Get Started',
-                                style: TextStyle(color: Colors.white, fontSize: 18),
-                              ),
+
+                        // Nút Get Started
+                        Container(
+                          width: MediaQuery.of(context).size.width * 0.5,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              padding: EdgeInsets.symmetric(vertical: 15),
+                              elevation: 5,
+                              shadowColor: Colors.orangeAccent,
                             ),
+                            onPressed: () {
+                              if (selectedRole == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Vui lòng chọn vai trò')),
+                                );
+                                return;
+                              }
+
+                              if (selectedRole == 'Khách hàng' && selectedTable == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Vui lòng chọn bàn cho khách hàng')),
+                                );
+                                return;
+                              }
+
+                              // Dẫn đến các màn tương ứng
+                              if (selectedRole == 'Quản lý') {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => BillStatisticsScreen()),
+                                );
+                              } else if (selectedRole == 'Nhân viên bếp') {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => KitchenMenuScreen()),
+                                );
+                              } else {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => HomeScreen(
+                                      role: selectedRole!,
+                                      table: selectedRole == 'Khách hàng' ? selectedTable : null,
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            child: Text('Get Started', style: TextStyle(color: Colors.white, fontSize: 18)),
                           ),
                         ),
                       ],
@@ -186,6 +187,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                 ),
               ),
+
+              // Footer
               Expanded(
                 flex: 2,
                 child: Align(
@@ -215,7 +218,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             'Are you tired of scrolling through menus and struggling to decide\n'
                                 'what to order? Our new restaurant app has got you covered\n'
                                 'with personalized recommendations from our digital assistant.',
-                            textAlign: TextAlign.left,
                             style: TextStyle(fontSize: 16, color: Colors.black54),
                           ),
                         ),
