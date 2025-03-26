@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'FoodDetailMenu.dart';
 import 'FoodItemCard.dart';
 import 'Sidebar.dart';
+import 'models/Food.dart';
+
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class EatEasyApp extends StatelessWidget {
   @override
@@ -18,22 +22,18 @@ class EatEasyApp extends StatelessWidget {
 class HomeScreen extends StatefulWidget {
   final String role;
   final String? table;
+  final String? orderId;
+  final int? tableId;
 
-  const HomeScreen({Key? key, required this.role, this.table}) : super(key: key);
+  const HomeScreen({Key? key, required this.role, this.table, this.orderId, this.tableId}) : super(key: key);
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Map<String, dynamic>> foodItems = [
-    {"name": "Avocado and Egg Toast", "price": "\$10.40", "image": "assets/food.jpg"},
-    {"name": "Mac and Cheese", "price": "\$10.40", "image": "assets/food.jpg"},
-    {"name": "Power Bowl", "price": "\$10.40", "image": "assets/food.jpg"},
-    {"name": "Vegetable Salad", "price": "\$10.40", "image": "assets/food.jpg"},
-    {"name": "Avocado Chicken Salad", "price": "\$10.40", "image": "assets/food.jpg"},
-    {"name": "Chicken Breast", "price": "\$10.40", "image": "assets/food.jpg"},
-  ];
+  late String? currentOrderId;
+  List<Food> foodItems = [];
 
   String searchQuery = "";
   late String selectedTable;
@@ -44,10 +44,32 @@ class _HomeScreenState extends State<HomeScreen> {
   List<String> tables = ["Bàn 001", "Bàn 002", "Bàn 003", "Bàn 004"];
   List<String> filters = ["Tất cả", "Phổ biến nhất", "Món chay", "Đồ uống"];
 
+  Future<void> fetchFoodItems() async {
+    try {
+      final uri = Uri.parse("http://localhost:3001/api/foods?search=$searchQuery&categoryName=${selectedFilter == 'Tất cả' ? '' : selectedFilter}");
+
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        setState(() {
+          foodItems = data.map((item) => Food.fromJson(item)).toList();
+        });
+      } else {
+        print("Lỗi khi lấy danh sách món ăn: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Lỗi kết nối đến server: $e");
+    }
+  }
+
+
   @override
   void initState() {
     super.initState();
     selectedTable = widget.table ?? "Bàn 001";
+    currentOrderId = widget.orderId;
+    fetchFoodItems();
   }
 
   @override
@@ -125,6 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             setState(() {
                               searchQuery = value;
                             });
+                            fetchFoodItems();
                           },
                         ),
                       ),
@@ -145,6 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             setState(() {
                               selectedFilter = filter;
                             });
+                            fetchFoodItems();
                           },
                         ),
                       );
@@ -164,11 +188,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       itemCount: foodItems.length,
                       itemBuilder: (context, index) {
+                        final food = foodItems[index];
                         return FoodItemCard(
-                          name: foodItems[index]["name"]!,
-                          price: foodItems[index]["price"]!,
-                          image: foodItems[index]["image"]!,
+                          id: food.id,
+                          name: food.name,
+                          price: "\$${food.price.toStringAsFixed(2)}",
+                          image: food.image ?? 'assets/food.jpg',
                           quantity: 0,
+                          description: food.description ?? "",
+                          orderId: currentOrderId,
                           onQuantityChanged: (newQuantity) {},
                         );
                       },
@@ -204,4 +232,6 @@ class FilterButton extends StatelessWidget {
     );
   }
 }
+
+
  

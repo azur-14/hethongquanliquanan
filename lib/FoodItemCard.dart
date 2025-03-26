@@ -3,17 +3,23 @@ import 'FoodDetailMenu.dart';
 
 
 class FoodItemCard extends StatelessWidget {
+  final String id;
   final String name;
   final String price;
   final String image;
   final int quantity;
+  final String description;
+  final String? orderId;
   final Function(int) onQuantityChanged;
 
   FoodItemCard({
+    required this.id,
     required this.name,
     required this.price,
     required this.image,
     required this.quantity,
+    required this.description,
+    this.orderId,
     required this.onQuantityChanged,
   });
 
@@ -28,6 +34,9 @@ class FoodItemCard extends StatelessWidget {
             price: price,
             image: image,
             quantity: quantity,
+            description: description,
+            orderId: orderId,
+            foodId: id,
             onQuantityChanged: onQuantityChanged,
           );
         },
@@ -61,7 +70,16 @@ class FoodItemCard extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(15),
-            child: Image.asset(image, width: 80, height: 80, fit: BoxFit.cover),
+            child: image != null && image.startsWith('http')
+                ? Image.network(
+                  image ?? '',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Image.asset('assets/food.jpg', fit: BoxFit.cover);
+                  },
+                )
+                : Image.asset('assets/food.jpg', fit: BoxFit.cover)
+
           ),
           SizedBox(width: 10),
           Expanded(
@@ -69,8 +87,8 @@ class FoodItemCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                Text(price, style: TextStyle(color: Color(0xFFFF7B2C), fontSize: 18, fontWeight: FontWeight.bold)),
+                Expanded(child: Text(name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+                Expanded(child: Text(price, style: TextStyle(color: Color(0xFFFF7B2C), fontSize: 18, fontWeight: FontWeight.bold))),
               ],
             ),
           ),

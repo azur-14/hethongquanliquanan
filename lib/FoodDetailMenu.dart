@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class FoodDetailModal extends StatefulWidget {
   final String name;
   final String price;
   final String image;
+  final String description;
   final int quantity;
+  final String? orderId;
+  final String? foodId;
   final Function(int) onQuantityChanged;
 
   FoodDetailModal({
     required this.name,
     required this.price,
     required this.image,
+    required this.description,
     required this.quantity,
     required this.onQuantityChanged,
+    this.orderId,
+    this.foodId,
   });
 
   @override
@@ -20,6 +28,7 @@ class FoodDetailModal extends StatefulWidget {
 }
 
 class _FoodDetailModalState extends State<FoodDetailModal> {
+  double totalPrice = 0;
   int quantity = 1;
   String request = "";
   final int maxRequestLength = 250;
@@ -32,7 +41,7 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
 
   @override
   Widget build(BuildContext context) {
-    double totalPrice = double.parse(widget.price.replaceAll("\$", "")) * quantity;
+    totalPrice = double.parse(widget.price.replaceAll("\$", "")) * quantity;
 
     return Stack(
       children: [
@@ -84,9 +93,18 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
                     Center(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(15),
-                        child: Image.asset(widget.image, width: 180, height: 180, fit: BoxFit.cover),
+                        child: Image.network(
+                          widget.image,
+                          width: 180,
+                          height: 180,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Image.asset('assets/food.jpg', width: 180, height: 180, fit: BoxFit.cover);
+                          },
+                        ),
                       ),
                     ),
+
                     SizedBox(height: 15),
 
                     // Food Name & Price
@@ -104,7 +122,7 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
 
                     // Description
                     Text(
-                      "Delicious and healthy meal to boost your energy. Made with fresh ingredients.",
+                      widget.description,
                       style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
 
@@ -177,7 +195,8 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
                             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
-                          onPressed: () {
+                          onPressed: () async {
+                            await addOrderDetail();
                             widget.onQuantityChanged(quantity);
                             Navigator.pop(context);
                           },
@@ -196,4 +215,29 @@ class _FoodDetailModalState extends State<FoodDetailModal> {
       ],
     );
   }
+
+  Future<void> addOrderDetail() async {
+    final uri = Uri.parse("http://localhost:3001/api/orderdetail");
+
+    final body = {
+      "orderId": widget.orderId,
+      "foodId": widget.foodId,
+      "quantity": quantity,
+      "price": totalPrice,
+      "ne": request,
+    };
+
+    final response = await http.post(
+      uri,
+      headers: {"Content-Type": "application/json"},
+      body: json.encode(body),
+    );
+
+    if (response.statusCode == 201) {
+      print("✅ OrderDetail đã được thêm");
+    } else {
+      print("❌ Lỗi thêm OrderDetail: ${response.body}");
+    }
+  }
+
 }

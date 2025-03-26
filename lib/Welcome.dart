@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'menu.dart';
+import 'models/TableList.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:intl/intl.dart';
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -24,7 +29,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     'Khách hàng',
     'Nhân viên bếp',
   ];
-  final List<String> tables = List.generate(10, (index) => 'Bàn ${index + 1}');
+
+  List<TableList> tables = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchTableList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,8 +136,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 ),
                                 items: tables.map((table) {
                                   return DropdownMenuItem<String>(
-                                    value: table,
-                                    child: Text(table),
+                                    value: table.name,
+                                    child: Text(table.name),
                                   );
                                 }).toList(),
                                 onChanged: (value) {
@@ -153,7 +165,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 elevation: 5,
                                 shadowColor: Colors.orangeAccent,
                               ),
-                              onPressed: () {
+                              onPressed: () async {
                                 if (selectedRole == null) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(content: Text('Vui lòng chọn vai trò')),
@@ -163,12 +175,29 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                     SnackBar(content: Text('Vui lòng chọn bàn cho khách hàng')),
                                   );
                                 } else {
+                                  String? createdOrderId;
+                                  int? tableId;
+
+                                  if (selectedRole == 'Khách hàng') {
+                                    // 👉 Tìm bàn được chọn
+                                    final selectedTableObject = tables.firstWhere(
+                                          (table) => table.name == selectedTable,
+                                      orElse: () => TableList(id: "", tableId: 0, name: 'Unknown', status: false),
+                                    );
+                                    tableId = selectedTableObject.tableId;
+
+                                    // 👉 Tạo đơn hàng
+                                    createdOrderId = await createOrder(tableId);
+                                  }
+
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => HomeScreen(
                                         role: selectedRole!,
                                         table: selectedRole == 'Khách hàng' ? selectedTable : null,
+                                        tableId: tableId,
+                                        orderId: createdOrderId,
                                       ),
                                     ),
                                   );
@@ -229,5 +258,54 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         ],
       ),
     );
+  }
+
+  Future<String?> createOrder(int tableId) async {
+    final String orderId = "DH${DateTime.now().millisecondsSinceEpoch}";
+    final String apiUrl = "http://localhost:3001/api/order/create";
+
+    print("📝 orderId = $orderId");
+    print("🪑 tableId = $tableId");
+
+    final response = await http.post(
+      Uri.parse(apiUrl),
+      headers: {"Content-Type": "application/json"},
+      body: json.encode({
+        "orderId": orderId,
+        "tableId": tableId,
+        "status": "pending",
+        "note": "",
+        "total": 0
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      final responseData = json.decode(response.body);
+      final createdOrderId = responseData['donHang']['orderId'];
+      print("✅ Đơn hàng tạo thành công");
+      return createdOrderId;
+    } else {
+      print("❌ Lỗi tạo đơn hàng: ${response.body}");
+      return null;
+    }
+  }
+
+
+  Future<void> fetchTableList() async {
+    try {
+      final uri = Uri.parse("http://localhost:3003/api/table");
+
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        setState(() {
+          tables = data.map((item) => TableList.fromJson(item)).toList();
+        });
+      } else {
+        print("Lỗi khi lấy danh sách món ăn: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Lỗi kết nối đến server: $e");
+    }
   }
 }

@@ -28,6 +28,7 @@ class _OrderPageState extends State<OrderPage> {
           price: orderSummary[index]["price"].toString(),
           image: orderSummary[index]["image"],
           quantity: orderSummary[index]["quantity"],
+          description: orderSummary[index]["description"],
           onQuantityChanged: (newQuantity) {
             setState(() {
               orderSummary[index]["quantity"] = newQuantity;
