@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'Sidebar.dart';
-import 'FoodDetailMenu.dart';
+import 'bill.dart'; // Giả định đã có trang bill.dart
 
 class OrderPage extends StatefulWidget {
   final String role;
@@ -18,9 +18,8 @@ class _OrderPageState extends State<OrderPage> {
   String selectedSidebarItem = "Đơn món";
 
   List<Map<String, dynamic>> orderSummary = [
-    {"name": "Avocado and Egg Toast", "price": 10.00, "quantity": 2, "image": "assets/food.jpg", "status": "Chờ xử lý"},
-    {"name": "Curry Salmon", "price": 10.00, "quantity": 2, "image": "assets/food.jpg", "status": "Chờ xử lý"},
-    {"name": "Yogurt and fruits", "price": 5.00, "quantity": 1, "image": "assets/food.jpg", "status": "Chờ xử lý"},
+    {"name": "Avocado and Egg Toast", "price": 10.00, "quantity": 2, "image": "assets/food.jpg", "status": "Đang thực hiện"},
+    {"name": "Curry Salmon", "price": 10.00, "quantity": 1, "image": "assets/food.jpg", "status": "Lên món"},
   ];
 
   @override
@@ -29,57 +28,11 @@ class _OrderPageState extends State<OrderPage> {
     selectedTable = widget.table ?? tables.first;
   }
 
-  void _openEditModal(BuildContext context, int index) {
-    if (orderSummary[index]["status"] != "Chờ xử lý") return;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return FoodDetailModal(
-          name: orderSummary[index]["name"],
-          price: orderSummary[index]["price"].toString(),
-          image: orderSummary[index]["image"],
-          quantity: orderSummary[index]["quantity"],
-          onQuantityChanged: (newQuantity) {
-            setState(() {
-              orderSummary[index]["quantity"] = newQuantity;
-            });
-          },
-        );
-      },
-    );
-  }
-
-  void _removeItem(int index) {
-    if (orderSummary[index]["status"] != "Chờ xử lý") return;
-    setState(() {
-      orderSummary.removeAt(index);
-    });
-  }
-
-  void _placeOrder() {
-    setState(() {
-      for (var item in orderSummary) {
-        if (item['status'] == 'Chờ xử lý') {
-          item['status'] = 'Đang thực hiện';
-        }
-      }
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Đã đặt món thành công!"),
-        backgroundColor: Colors.green,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     double subtotal = orderSummary.fold(0, (sum, item) => sum + (item["price"] * item["quantity"]));
     double tax = 5.00;
     double totalPrice = subtotal + tax;
-    bool hasItemsToPlace = orderSummary.any((item) => item['status'] == 'Chờ xử lý');
 
     return Scaffold(
       drawer: MediaQuery.of(context).size.width < 800
@@ -115,7 +68,6 @@ class _OrderPageState extends State<OrderPage> {
                 children: [
                   // 🔸 Tên bàn
                   widget.role == "Nhân viên phục vụ" || widget.role == "Quản lý"
-
                       ? DropdownButton<String>(
                     value: selectedTable,
                     items: tables.map((table) {
@@ -147,19 +99,37 @@ class _OrderPageState extends State<OrderPage> {
                             image: item["image"],
                             quantity: item["quantity"],
                             status: item["status"],
-                            onEdit: () => _openEditModal(context, index),
-                            onDelete: () => _removeItem(index),
                           );
                         }).toList(),
                       ),
                     ),
                   ),
+
+                  // 🔸 Xuất hóa đơn (chỉ nhân viên)
+                  if (widget.role == "Nhân viên phục vụ" || widget.role == "Quản lý")
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => BillScreen(billId: "#HD001")),
+                          );
+                        },
+                        icon: Icon(Icons.receipt_long),
+                        label: Text("Xuất hóa đơn"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepPurple,
+                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
 
-          // 🔸 Giỏ hàng bên phải
+          // 🔸 Sidebar đơn hàng
           if (MediaQuery.of(context).size.width >= 1100)
             Container(
               width: MediaQuery.of(context).size.width * 0.3,
@@ -172,69 +142,44 @@ class _OrderPageState extends State<OrderPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("Đơn của bạn", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 10),
                   Divider(),
-
-                  // 🔹 Chi tiết đơn
-                  Column(
-                    children: orderSummary.map((item) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Image.asset(item["image"], width: 40, height: 40),
-                                SizedBox(width: 10),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(item["name"], style: TextStyle(fontSize: 14)),
-                                    Text(item["status"],
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: item["status"] == "Đang thực hiện"
-                                              ? Colors.orange
-                                              : Colors.grey,
-                                        )),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            Text("x${item["quantity"]}  \$${item["price"].toStringAsFixed(2)}",
-                                style: TextStyle(fontSize: 14)),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                  ...orderSummary.map((item) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Image.asset(item["image"], width: 40, height: 40),
+                              SizedBox(width: 10),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(item["name"], style: TextStyle(fontSize: 14)),
+                                  Text(item["status"],
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: item["status"] == "Đang thực hiện"
+                                            ? Colors.orange
+                                            : Colors.green,
+                                      )),
+                                ],
+                              ),
+                            ],
+                          ),
+                          Text("x${item["quantity"]}  \$${item["price"].toStringAsFixed(2)}",
+                              style: TextStyle(fontSize: 14)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                   Divider(),
                   Text("Subtotal:  \$${subtotal.toStringAsFixed(2)}", style: TextStyle(fontSize: 14)),
                   Text("Tax:  \$${tax.toStringAsFixed(2)}", style: TextStyle(fontSize: 14)),
                   SizedBox(height: 10),
-                  Text("Total price:  \$${totalPrice.toStringAsFixed(2)}",
+                  Text("Total:  \$${totalPrice.toStringAsFixed(2)}",
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange)),
-
-                  Spacer(),
-
-                  if (hasItemsToPlace)
-                    ElevatedButton(
-                      onPressed: _placeOrder,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.check_circle, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text("Đặt", style: TextStyle(fontSize: 16, color: Colors.white)),
-                        ],
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -244,15 +189,13 @@ class _OrderPageState extends State<OrderPage> {
   }
 }
 
-// 🔸 Widget hiển thị từng món
+// 🔹 Widget hiển thị từng món
 class OrderItemCard extends StatelessWidget {
   final String name;
   final double price;
   final String image;
   final int quantity;
   final String status;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
 
   const OrderItemCard({
     required this.name,
@@ -260,8 +203,6 @@ class OrderItemCard extends StatelessWidget {
     required this.image,
     required this.quantity,
     required this.status,
-    required this.onEdit,
-    required this.onDelete,
   });
 
   Color _getStatusColor() {
@@ -278,8 +219,6 @@ class OrderItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    bool isEditable = status == "Chờ xử lý";
-
     return Container(
       padding: EdgeInsets.all(15),
       margin: EdgeInsets.only(bottom: 10),
@@ -304,14 +243,6 @@ class OrderItemCard extends StatelessWidget {
                 Text("Trạng thái: $status", style: TextStyle(fontSize: 14, color: _getStatusColor())),
               ],
             ),
-          ),
-          IconButton(
-            icon: Icon(Icons.edit, color: isEditable ? Colors.orange : Colors.grey),
-            onPressed: isEditable ? onEdit : null,
-          ),
-          IconButton(
-            icon: Icon(Icons.delete, color: isEditable ? Colors.red : Colors.grey),
-            onPressed: isEditable ? onDelete : null,
           ),
         ],
       ),

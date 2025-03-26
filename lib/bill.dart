@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'Sidebar.dart';
 
 class BillScreen extends StatelessWidget {
   final String billId;
 
   const BillScreen({Key? key, required this.billId}) : super(key: key);
 
-  // Dữ liệu mẫu
   final List<Map<String, dynamic>> allBills = const [
     {
       'billId': '#HD001',
@@ -28,11 +28,11 @@ class BillScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bill = allBills.firstWhere((b) => b['billId'] == billId);
+    final bill = allBills.firstWhere((b) => b['billId'] == billId, orElse: () => {});
 
-    if (bill == null) {
+    if (bill.isEmpty) {
       return Scaffold(
-        body: Center(child: Text("Không tìm thấy hóa đơn $billId")),
+        body: Center(child: Text("❌ Không tìm thấy hóa đơn $billId")),
       );
     }
 
@@ -40,118 +40,25 @@ class BillScreen extends StatelessWidget {
     final List<Map<String, dynamic>> orderedItems = List<Map<String, dynamic>>.from(bill['items']);
     double subtotal = orderedItems.fold(0, (sum, item) => sum + (item['qty'] * item['price']));
     double tax = 5.0;
-    double total = subtotal + tax;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       body: Row(
         children: [
-          // Sidebar
-          Container(
-            width: 200,
-            color: Color(0xFF2F2F3E),
-            child: Column(
-              children: [
-                SizedBox(height: 40),
-                Text("EatEasy", style: TextStyle(color: Colors.white, fontSize: 22)),
-                SizedBox(height: 40),
-                SidebarButton(icon: Icons.restaurant_menu, label: "MÓN ĂN", selected: false),
-                SidebarButton(icon: Icons.list_alt, label: "ĐƠN MÓN", selected: false),
-                SidebarButton(icon: Icons.receipt, label: "HÓA ĐƠN", selected: true),
-                Spacer(),
-                SidebarButton(icon: Icons.logout, label: "THOÁT", selected: false),
-                SizedBox(height: 30),
-              ],
-            ),
+          Sidebar(
+            selectedItem: "Hóa đơn",
+            onSelectItem: (_) {},
+            role: "Quản lý",
+            table: tableName,
           ),
-
-          // Nội dung chính
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(30),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('🧾 $tableName - $billId', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 20),
-
-                  // Danh sách món
-                  ...orderedItems.map((item) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Row(
-                      children: [
-                        Image.asset(item['image'], width: 40, height: 40),
-                        SizedBox(width: 15),
-                        Expanded(child: Text(item['name'], style: TextStyle(fontSize: 16))),
-                        Text('${item['qty']} × \$${item['price'].toStringAsFixed(2)}'),
-                      ],
-                    ),
-                  )),
-
-                  Divider(height: 40, thickness: 1.2),
-
-                  // Tính tiền
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Subtotal:', style: TextStyle(fontSize: 16)),
-                      Text('\$${subtotal.toStringAsFixed(2)}', style: TextStyle(fontSize: 16)),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Tax:', style: TextStyle(fontSize: 16)),
-                      Text('\$${tax.toStringAsFixed(2)}', style: TextStyle(fontSize: 16)),
-                    ],
-                  ),
-
-                  SizedBox(height: 20),
-
-                  // Mã giảm giá
-                  Text('Add discount code/tags', style: TextStyle(color: Colors.grey[600])),
-                  SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Apply discount code',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 10),
-                      ElevatedButton(onPressed: () {}, child: Text("Apply"))
-                    ],
-                  ),
-
-                  Spacer(),
-
-                  // Total + Pay
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("Total price", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      Text("\$${total.toStringAsFixed(2)}",
-                          style: TextStyle(fontSize: 20, color: Colors.red, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurple,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: () {},
-                      child: Text("Pay \$${total.toStringAsFixed(2)}", style: TextStyle(fontSize: 18)),
-                    ),
-                  ),
-                ],
+              child: BillContent(
+                billId: billId,
+                tableName: tableName,
+                orderedItems: orderedItems,
+                subtotal: subtotal,
+                tax: tax,
               ),
             ),
           ),
@@ -161,25 +68,107 @@ class BillScreen extends StatelessWidget {
   }
 }
 
-class SidebarButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool selected;
+class BillContent extends StatefulWidget {
+  final String billId;
+  final String tableName;
+  final List<Map<String, dynamic>> orderedItems;
+  final double subtotal;
+  final double tax;
 
-  const SidebarButton({required this.icon, required this.label, this.selected = false});
+  const BillContent({
+    required this.billId,
+    required this.tableName,
+    required this.orderedItems,
+    required this.subtotal,
+    required this.tax,
+  });
+
+  @override
+  State<BillContent> createState() => _BillContentState();
+}
+
+class _BillContentState extends State<BillContent> {
+  double discountPercent = 0;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 8),
-      decoration: selected
-          ? BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(10))
-          : null,
-      child: ListTile(
-        leading: Icon(icon, color: selected ? Colors.white : Colors.white70),
-        title: Text(label, style: TextStyle(color: selected ? Colors.white : Colors.white70)),
-        onTap: () {},
-      ),
+    double discountAmount = widget.subtotal * (discountPercent / 100);
+    double total = widget.subtotal + widget.tax - discountAmount;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('🧾 ${widget.tableName} - ${widget.billId}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        SizedBox(height: 20),
+        ...widget.orderedItems.map((item) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            children: [
+              Image.asset(item['image'], width: 40, height: 40),
+              SizedBox(width: 15),
+              Expanded(child: Text(item['name'], style: TextStyle(fontSize: 16))),
+              Text('${item['qty']} × \$${item['price'].toStringAsFixed(2)}'),
+            ],
+          ),
+        )),
+        Divider(height: 40, thickness: 1.2),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Subtotal:', style: TextStyle(fontSize: 16)),
+            Text('\$${widget.subtotal.toStringAsFixed(2)}', style: TextStyle(fontSize: 16)),
+          ],
+        ),
+        SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Tax:', style: TextStyle(fontSize: 16)),
+            Text('\$${widget.tax.toStringAsFixed(2)}', style: TextStyle(fontSize: 16)),
+          ],
+        ),
+        SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Giảm giá (%):', style: TextStyle(fontSize: 16)),
+            Container(
+              width: 80,
+              child: TextField(
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  setState(() {
+                    discountPercent = double.tryParse(value) ?? 0;
+                  });
+                },
+                decoration: InputDecoration(hintText: "0", suffixText: "%"),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text("Total price", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text("\$${total.toStringAsFixed(2)}",
+                style: TextStyle(fontSize: 20, color: Colors.red, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepPurple,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {},
+            child: Text("Xuất hóa đơn", style: TextStyle(fontSize: 18)),
+          ),
+        ),
+      ],
     );
   }
 }

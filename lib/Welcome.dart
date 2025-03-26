@@ -24,7 +24,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   final List<String> roles = [
     'Quản lý',
     'Nhân viên phục vụ',
-    'Khách hàng',
     'Nhân viên bếp',
   ];
   final List<String> tables = List.generate(10, (index) => 'Bàn ${index + 1}');
@@ -96,37 +95,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             onChanged: (value) {
                               setState(() {
                                 selectedRole = value;
-                                if (value != 'Khách hàng') {
-                                  selectedTable = null;
-                                }
+
                               });
                             },
                           ),
                         ),
-
-                        // Nếu là khách hàng → chọn bàn
-                        if (selectedRole == 'Khách hàng') ...[
-                          SizedBox(height: 16),
-                          Container(
-                            width: MediaQuery.of(context).size.width * 0.6,
-                            child: DropdownButtonFormField<String>(
-                              value: selectedTable,
-                              decoration: InputDecoration(
-                                labelText: 'Chọn bàn của bạn',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              ),
-                              items: tables.map((table) {
-                                return DropdownMenuItem(value: table, child: Text(table));
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  selectedTable = value;
-                                });
-                              },
-                            ),
-                          ),
-                        ],
 
                         SizedBox(height: 20),
 
