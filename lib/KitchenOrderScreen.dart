@@ -16,9 +16,10 @@ class _KitchenOrderScreenState extends State<KitchenOrderScreen> {
       'status': 'Đang chuẩn bị',
       'locked': false,
       'orderTime': DateTime.now().subtract(Duration(minutes: 15)),
+      'note': 'Khách yêu cầu ít hành, thêm tương ớt riêng',
       'items': [
-        {'name': 'Phở bò', 'qty': 2, 'note': 'Ít hành', 'done': false},
-        {'name': 'Cafe đá', 'qty': 1, 'note': '', 'done': false},
+        {'name': 'Phở bò', 'qty': 2, 'done': false},
+        {'name': 'Cafe đá', 'qty': 1, 'done': false},
       ],
     },
     {
@@ -26,14 +27,15 @@ class _KitchenOrderScreenState extends State<KitchenOrderScreen> {
       'status': 'Hoàn tất',
       'locked': true,
       'orderTime': DateTime.now().subtract(Duration(minutes: 30)),
+      'note': 'Thêm pate vào bánh mì',
       'items': [
-        {'name': 'Bánh mì', 'qty': 1, 'note': 'Thêm pate', 'done': true},
+        {'name': 'Bánh mì', 'qty': 1, 'done': true},
       ],
     },
   ];
 
   void _updateOrderStatus(Map<String, dynamic> order) {
-    bool allDone = order['items'].every((item) => (item as Map<String, dynamic>)['done'] as bool);
+    bool allDone = order['items'].every((item) => (item as Map)['done']);
     setState(() {
       order['status'] = allDone ? 'Hoàn tất' : 'Đang chuẩn bị';
     });
@@ -49,24 +51,38 @@ class _KitchenOrderScreenState extends State<KitchenOrderScreen> {
               title: Text('Chi tiết ${order['table']}'),
               content: SizedBox(
                 width: 400,
-                child: ListView(
-                  shrinkWrap: true,
-                  children: order['items'].map<Widget>((item) {
-                    return CheckboxListTile(
-                      title: Text('${item['name']} (x${item['qty']})'),
-                      subtitle: item['note'].isNotEmpty
-                          ? Text('Ghi chú: ${item['note']}')
-                          : null,
-                      value: item['done'],
-                      onChanged: order['locked']
-                          ? null
-                          : (val) {
-                        setStateDialog(() {
-                          item['done'] = val!;
-                        });
-                      },
-                    );
-                  }).toList(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    order['note'] != null && order['note'].toString().isNotEmpty
+                        ? Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        'Ghi chú đơn hàng: ${order['note']}',
+                        style: TextStyle(fontStyle: FontStyle.italic, color: Colors.blueAccent),
+                      ),
+                    )
+                        : SizedBox.shrink(),
+                    Expanded(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: order['items'].map<Widget>((item) {
+                          return CheckboxListTile(
+                            title: Text('${item['name']} (x${item['qty']})'),
+                            value: item['done'],
+                            onChanged: order['locked']
+                                ? null
+                                : (val) {
+                              setStateDialog(() {
+                                item['done'] = val!;
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               actions: [
@@ -85,14 +101,10 @@ class _KitchenOrderScreenState extends State<KitchenOrderScreen> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
-    final visibleOrders = orders
-        .where((order) =>
-    order['status'] == 'Đang chuẩn bị' || order['status'] == 'Hoàn tất')
-        .toList();
+    final visibleOrders = orders.where((order) =>
+    order['status'] == 'Đang chuẩn bị' || order['status'] == 'Hoàn tất').toList();
 
     return Scaffold(
       body: Row(
@@ -109,14 +121,12 @@ class _KitchenOrderScreenState extends State<KitchenOrderScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("Danh sách Đơn món",
-                      style:
-                      TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   SizedBox(height: 20),
                   Expanded(
                     child: GridView.builder(
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount:
-                        MediaQuery.of(context).size.width > 1200 ? 5 : 4,
+                        crossAxisCount: MediaQuery.of(context).size.width > 1200 ? 5 : 4,
                         childAspectRatio: 1.1,
                         crossAxisSpacing: 18,
                         mainAxisSpacing: 18,
@@ -144,8 +154,7 @@ class _KitchenOrderScreenState extends State<KitchenOrderScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(order['table'],
                                       style: TextStyle(
@@ -173,9 +182,8 @@ class _KitchenOrderScreenState extends State<KitchenOrderScreen> {
                                   Icon(Icons.access_time,
                                       size: 16, color: Colors.grey),
                                   SizedBox(width: 5),
-                                  Text(
-                                      DateFormat('HH:mm dd/MM/yyyy')
-                                          .format(order['orderTime']),
+                                  Text(DateFormat('HH:mm dd/MM/yyyy')
+                                      .format(order['orderTime']),
                                       style: TextStyle(
                                           fontSize: 12, color: Colors.grey)),
                                 ],
