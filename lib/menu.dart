@@ -4,6 +4,8 @@ import 'Sidebar.dart';
 import 'OpenTable.dart';
 import 'FilterButton.dart';
 import 'models/Food.dart';
+import 'models/TableList.dart';
+import 'package:intl/intl.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -20,23 +22,25 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Food> foodItems = [];
+  List<TableList> tables = [];
+
   List<Map<String, dynamic>> cart = [];
   String orderNote = "";
+
   String searchQuery = "";
-  late String selectedTable;
+  String? selectedTable;
   String selectedFilter = "Tất cả";
   String selectedSidebarItem = "Món ăn";
-  List<String> tables = ["Bàn 001", "Bàn 002", "Bàn 003", "Bàn 004"];
+
   List<String> filters = ["Tất cả", "Phổ biến nhất", "Món chay", "Đồ uống"];
 
-  bool isLocked = false;  // Track if the system is locked
+  bool isLocked = false;
   String currentRole = "";
 
   @override
   void initState() {
     super.initState();
-    selectedTable = widget.table ?? tables.first;
-    currentRole = widget.role;  // Get the initial role from the widget
+    currentRole = widget.role;
     fetchFoodItems();
   }
 
@@ -64,10 +68,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ElevatedButton(
                 child: Text("Xác nhận"),
                 onPressed: () {
-                  if (inputCode == "1234") { // Correct code to lock
+                  if (inputCode == "1234") {
                     setState(() {
                       isLocked = true;
-                      currentRole = "Khách hàng"; // Switch role to "Khách hàng"
+                      currentRole = "Khách hàng";
                     });
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -133,7 +137,6 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
   }
-
   double get subtotal => cart.fold(0.0, (sum, item) => sum + item["price"] * item["quantity"]);
 
   @override
@@ -178,19 +181,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       (currentRole == "Nhân viên phục vụ" || currentRole == "Quản lý")
                           ? DropdownButton<String>(
                         value: selectedTable,
-                        items: tables.map((table) {
-                          return DropdownMenuItem(
-                            value: table,
-                            child: Text(table, style: TextStyle(fontWeight: FontWeight.bold)),
-                          );
-                        }).toList(),
+                        items: tables
+                          .where((table) => table.status) // 👉 chỉ lấy những bàn đã mở
+                          .map((table) {
+                            return DropdownMenuItem(
+                              value: table.name,
+                              child: Text(table.name , style: TextStyle(fontWeight: FontWeight.bold)),
+                            );
+                          }).toList(),
                         onChanged: (value) {
                           setState(() {
                             selectedTable = value!;
                           });
                         },
                       )
-                          : Text(selectedTable, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          : Text(selectedTable ?? "Bàn 1", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       Row(
                         children: [
                           // Show "Khóa" button if the role is "Nhân viên phục vụ"
@@ -216,8 +221,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           SizedBox(width: 12),
                           if (currentRole == "Nhân viên phục vụ" || currentRole == "Quản lý")
                             ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.push(context, MaterialPageRoute(builder: (_) => OpenTableScreen()));
+                              onPressed: () async {
+                                final openedTables = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => OpenTableScreen()),
+                                );
+
+                                if (openedTables != null && openedTables is List<TableList>) {
+                                  setState(() {
+                                    tables = openedTables;
+                                    selectedTable = tables.first.name;
+                                  });
+                                }
                               },
                               icon: Icon(Icons.event_seat),
                               label: Text("Mở bàn"),
@@ -299,6 +314,70 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+          // 🔹 Sidebar giỏ hàng
+          if (MediaQuery.of(context).size.width > 1100)
+            Container(
+              width: 320,
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(color: Colors.grey.shade100, border: Border(left: BorderSide(color: Colors.grey))),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Giỏ hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Divider(),
+                  Expanded(
+                    child: cart.isEmpty
+                        ? Center(child: Text("Chưa có món nào được thêm."))
+                        : ListView(
+                      children: cart.map((item) {
+                        return ListTile(
+                          leading: Image.network(
+                            item["image"] ?? '',
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset('assets/food.jpg', width: 80, height: 80, fit: BoxFit.cover);
+                            },
+                          )
+                          ,
+                          title: Text(item["name"], style: TextStyle(fontSize: 14)),
+                          subtitle: Text("x${item["quantity"]}"),
+                          trailing: Text("\$${(item["price"] * item["quantity"]).toStringAsFixed(2)}"),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  TextField(
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      hintText: "Thêm ghi chú cho đơn hàng...",
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onChanged: (value) => orderNote = value,
+                  ),
+                  SizedBox(height: 10),
+                  Text("Tổng cộng: \$${subtotal.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      if (cart.isEmpty) return;
+                      placeOrder();
+                      setState(() {
+                        cart.clear();
+                        orderNote = "";
+                      });
+                    },
+                    icon: Icon(Icons.check_circle),
+                    label: Text("Đặt món"),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -352,7 +431,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final uri = Uri.parse("http://localhost:3001/api/orders/create");
 
     final orderPayload = {
-      "tableId": selectedTable.replaceAll(RegExp(r"\D"), ""), // "Bàn 001" -> "001"
+      "tableId": selectedTable?.replaceAll(RegExp(r"\D"), ""), // "Bàn 001" -> "001"
       "note": orderNote,
       "cart": cart.map((item) => {
         "foodId": item["foodId"],  // phải có field này trong cart
@@ -368,7 +447,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: jsonEncode(orderPayload),
     );
 
-    if (response.statusCode == 201) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text("Đặt món thành công."),
         backgroundColor: Colors.green,
@@ -379,6 +458,29 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } else {
       print("❌ Đặt món thất bại: ${response.body}");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Đặt món thất bại."),
+        backgroundColor: Colors.red,
+      ));
+    }
+  }
+
+  Future<void> fetchTableList() async {
+    try {
+      final uri = Uri.parse("http://localhost:3003/api/table");
+
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        setState(() {
+          tables = data.map((item) => TableList.fromJson(item)).toList();
+          selectedTable = widget.table ?? (tables.isNotEmpty ? tables.first.name : '');
+        });
+      } else {
+        print("Lỗi khi lấy danh sách món ăn: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Lỗi kết nối đến server: $e");
     }
   }
 }

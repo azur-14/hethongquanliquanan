@@ -2,7 +2,7 @@ class TableList {
   final String id;
   final int tableId;
   final String name;
-  final bool status;
+  bool status;
 
   TableList({
     required this.id,
