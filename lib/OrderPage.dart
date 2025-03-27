@@ -127,8 +127,7 @@ class _OrderPageState extends State<OrderPage> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                                builder: (_) => BillScreen(billId: "#HD001")),
+                            MaterialPageRoute(builder: (_) => BillScreen(billId: "#HD001", role: widget.role,)),
                           );
                         },
                         icon: Icon(Icons.receipt_long),
@@ -152,10 +151,7 @@ class _OrderPageState extends State<OrderPage> {
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  bottomLeft: Radius.circular(20),
-                ),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(20), bottomLeft: Radius.circular(20)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

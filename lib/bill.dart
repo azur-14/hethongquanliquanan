@@ -3,8 +3,9 @@ import 'Sidebar.dart';
 
 class BillScreen extends StatefulWidget {
   final String billId;
+  final String role;  // Add role as a parameter
 
-  const BillScreen({Key? key, required this.billId}) : super(key: key);
+  const BillScreen({Key? key, required this.billId, required this.role}) : super(key: key);
 
   @override
   _BillScreenState createState() => _BillScreenState();
@@ -59,7 +60,12 @@ class _BillScreenState extends State<BillScreen> {
     return Scaffold(
       body: Row(
         children: [
-          Sidebar(selectedItem: "Hóa đơn", onSelectItem: (_) {}, role: "Quản lý", table: tableName),
+          Sidebar(
+            selectedItem: "Hóa đơn",
+            onSelectItem: (_) {},
+            role: widget.role, // Use role from the previous screen
+            table: tableName,
+          ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(30),
@@ -83,6 +89,7 @@ class _BillScreenState extends State<BillScreen> {
     );
   }
 }
+
 
 class BillContent extends StatefulWidget {
   final String billId;
@@ -179,7 +186,7 @@ class _BillContentState extends State<BillContent> {
               style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               onPressed: widget.onComplete,
-              child: Text("✅ Hoàn thành đơn", style: TextStyle(fontSize: 18, color: Colors.white)),
+              child: Text("Hoàn thành đơn", style: TextStyle(fontSize: 18, color: Colors.white)),
             ),
           ),
         SizedBox(height: 10),
@@ -190,7 +197,7 @@ class _BillContentState extends State<BillContent> {
             style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             onPressed: () {},
-            child: Text("🖨️ Xuất hóa đơn", style: TextStyle(fontSize: 18)),
+            child: Text("Xuất hóa đơn", style: TextStyle(fontSize: 18)),
           ),
         ),
       ],

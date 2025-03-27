@@ -42,11 +42,11 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     currentRole = widget.role;
     fetchFoodItems();
-    fetchTableList();
   }
 
   void _handleLockUnlock() {
-    if (!isLocked) {
+    if (currentRole == "Nhân viên phục vụ") {
+      // If role is "Nhân viên phục vụ", lock and switch to "Khách hàng"
       showDialog(
         context: context,
         builder: (context) {
@@ -91,10 +91,50 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       );
     } else {
-      setState(() {
-        isLocked = false;
-        currentRole = "Nhân viên phục vụ";
-      });
+      // If role is "Khách hàng", unlock and switch back to "Nhân viên phục vụ"
+      showDialog(
+        context: context,
+        builder: (context) {
+          String inputCode = '';
+          return AlertDialog(
+            title: Text("Nhập mã mở khóa"),
+            content: TextField(
+              obscureText: true,
+              decoration: InputDecoration(hintText: "Nhập mã bí mật"),
+              onChanged: (value) {
+                inputCode = value;
+              },
+            ),
+            actions: [
+              TextButton(
+                child: Text("Hủy"),
+                onPressed: () => Navigator.pop(context),
+              ),
+              ElevatedButton(
+                child: Text("Xác nhận"),
+                onPressed: () {
+                  if (inputCode == "1234") { // Correct code to unlock
+                    setState(() {
+                      isLocked = false;
+                      currentRole = "Nhân viên phục vụ"; // Switch back to "Nhân viên phục vụ"
+                    });
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text("Đã chuyển sang chế độ Nhân viên phục vụ."),
+                      backgroundColor: Colors.green,
+                    ));
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text("Mã không đúng."),
+                      backgroundColor: Colors.red,
+                    ));
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      );
     }
   }
   double get subtotal => cart.fold(0.0, (sum, item) => sum + item["price"] * item["quantity"]);
@@ -158,33 +198,46 @@ class _HomeScreenState extends State<HomeScreen> {
                           : Text(selectedTable ?? "Bàn 1", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       Row(
                         children: [
-                          ElevatedButton.icon(
-                            onPressed: _handleLockUnlock,
-                            icon: Icon(isLocked ? Icons.lock_open : Icons.lock),
-                            label: Text(isLocked ? "Mở khóa" : "Khóa"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isLocked ? Colors.grey : Colors.deepOrange,
+                          // Show "Khóa" button if the role is "Nhân viên phục vụ"
+                          if (currentRole == "Nhân viên phục vụ")
+                            ElevatedButton.icon(
+                              onPressed: _handleLockUnlock,
+                              icon: Icon(Icons.lock),
+                              label: Text("Khóa"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepOrange,
+                              ),
                             ),
-                          ),
+                          // Show "Mở khóa" button if the role is "Khách hàng"
+                          if (currentRole == "Khách hàng")
+                            ElevatedButton.icon(
+                              onPressed: _handleLockUnlock,
+                              icon: Icon(Icons.lock_open),
+                              label: Text("Mở khóa"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey,
+                              ),
+                            ),
                           SizedBox(width: 12),
-                          ElevatedButton.icon(
-                            onPressed: () async {
-                              final openedTables = await Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => OpenTableScreen()),
-                              );
+                          if (currentRole == "Nhân viên phục vụ" || currentRole == "Quản lý")
+                            ElevatedButton.icon(
+                              onPressed: () async {
+                                final openedTables = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => OpenTableScreen()),
+                                );
 
-                              if (openedTables != null && openedTables is List<TableList>) {
-                                setState(() {
-                                  tables = openedTables;
-                                  selectedTable = tables.first.name;
-                                });
-                              }
-                            },
-                            icon: Icon(Icons.event_seat),
-                            label: Text("Mở bàn"),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                          ),
+                                if (openedTables != null && openedTables is List<TableList>) {
+                                  setState(() {
+                                    tables = openedTables;
+                                    selectedTable = tables.first.name;
+                                  });
+                                }
+                              },
+                              icon: Icon(Icons.event_seat),
+                              label: Text("Mở bàn"),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                            ),
                         ],
                       ),
                       Container(

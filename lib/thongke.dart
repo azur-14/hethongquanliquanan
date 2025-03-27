@@ -271,7 +271,15 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
                           title: Text("${bill['billId']} - Bàn ${bill['tableId']}"),
                           subtitle: Text("${DateFormat('dd/MM/yyyy - HH:mm').format(bill['time'])} ($shift)"),
                           trailing: Text("\$${bill['total'].toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold)),
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BillScreen(billId: bill['billId']))),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => BillScreen(
+                                billId: '#HD001', // or dynamic value
+                                role: 'Quản lý', // Pass role here
+                              ),
+                            ),
+                          )
                         );
                       },
                     ),
