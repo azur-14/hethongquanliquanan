@@ -10,7 +10,7 @@ class GenerateSecretCode extends StatefulWidget {
 }
 
 class _GenerateSecretCodeState extends State<GenerateSecretCode> {
-  String? generatedCode;
+  String? generatedCode = "AB12CD"; // Sample initial code
 
   String generateCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -22,7 +22,7 @@ class _GenerateSecretCodeState extends State<GenerateSecretCode> {
 
   void generateNewCode() {
     setState(() {
-      generatedCode = generateCode();
+      generatedCode = generateCode(); // Replace the current code with a new one
     });
   }
 
@@ -65,6 +65,7 @@ class _GenerateSecretCodeState extends State<GenerateSecretCode> {
                       ),
                     ),
                     const SizedBox(height: 30),
+                    // Display current generated code
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 20),

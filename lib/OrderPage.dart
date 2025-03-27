@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'Sidebar.dart';
-import 'bill.dart'; // Giả định đã có trang bill.dart
+import 'bill.dart'; // Assuming you have bill.dart page
 
 class OrderPage extends StatefulWidget {
   final String role;
@@ -113,7 +113,7 @@ class _OrderPageState extends State<OrderPage> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => BillScreen(billId: "#HD001")),
+                            MaterialPageRoute(builder: (_) => BillScreen(billId: "#HD001", role: widget.role,)),
                           );
                         },
                         icon: Icon(Icons.receipt_long),

@@ -20,31 +20,29 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Food> foodItems = [];
-
   List<Map<String, dynamic>> cart = [];
   String orderNote = "";
-
   String searchQuery = "";
   late String selectedTable;
   String selectedFilter = "Tất cả";
   String selectedSidebarItem = "Món ăn";
-
   List<String> tables = ["Bàn 001", "Bàn 002", "Bàn 003", "Bàn 004"];
   List<String> filters = ["Tất cả", "Phổ biến nhất", "Món chay", "Đồ uống"];
 
-  bool isLocked = false;
+  bool isLocked = false;  // Track if the system is locked
   String currentRole = "";
 
   @override
   void initState() {
     super.initState();
     selectedTable = widget.table ?? tables.first;
-    currentRole = widget.role;
+    currentRole = widget.role;  // Get the initial role from the widget
     fetchFoodItems();
   }
 
   void _handleLockUnlock() {
-    if (!isLocked) {
+    if (currentRole == "Nhân viên phục vụ") {
+      // If role is "Nhân viên phục vụ", lock and switch to "Khách hàng"
       showDialog(
         context: context,
         builder: (context) {
@@ -66,10 +64,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ElevatedButton(
                 child: Text("Xác nhận"),
                 onPressed: () {
-                  if (inputCode == "1234") {
+                  if (inputCode == "1234") { // Correct code to lock
                     setState(() {
                       isLocked = true;
-                      currentRole = "Khách hàng";
+                      currentRole = "Khách hàng"; // Switch role to "Khách hàng"
                     });
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -89,12 +87,53 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       );
     } else {
-      setState(() {
-        isLocked = false;
-        currentRole = "Nhân viên phục vụ";
-      });
+      // If role is "Khách hàng", unlock and switch back to "Nhân viên phục vụ"
+      showDialog(
+        context: context,
+        builder: (context) {
+          String inputCode = '';
+          return AlertDialog(
+            title: Text("Nhập mã mở khóa"),
+            content: TextField(
+              obscureText: true,
+              decoration: InputDecoration(hintText: "Nhập mã bí mật"),
+              onChanged: (value) {
+                inputCode = value;
+              },
+            ),
+            actions: [
+              TextButton(
+                child: Text("Hủy"),
+                onPressed: () => Navigator.pop(context),
+              ),
+              ElevatedButton(
+                child: Text("Xác nhận"),
+                onPressed: () {
+                  if (inputCode == "1234") { // Correct code to unlock
+                    setState(() {
+                      isLocked = false;
+                      currentRole = "Nhân viên phục vụ"; // Switch back to "Nhân viên phục vụ"
+                    });
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text("Đã chuyển sang chế độ Nhân viên phục vụ."),
+                      backgroundColor: Colors.green,
+                    ));
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text("Mã không đúng."),
+                      backgroundColor: Colors.red,
+                    ));
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      );
     }
   }
+
   double get subtotal => cart.fold(0.0, (sum, item) => sum + item["price"] * item["quantity"]);
 
   @override
@@ -154,23 +193,36 @@ class _HomeScreenState extends State<HomeScreen> {
                           : Text(selectedTable, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       Row(
                         children: [
-                          ElevatedButton.icon(
-                            onPressed: _handleLockUnlock,
-                            icon: Icon(isLocked ? Icons.lock_open : Icons.lock),
-                            label: Text(isLocked ? "Mở khóa" : "Khóa"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isLocked ? Colors.grey : Colors.deepOrange,
+                          // Show "Khóa" button if the role is "Nhân viên phục vụ"
+                          if (currentRole == "Nhân viên phục vụ")
+                            ElevatedButton.icon(
+                              onPressed: _handleLockUnlock,
+                              icon: Icon(Icons.lock),
+                              label: Text("Khóa"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepOrange,
+                              ),
                             ),
-                          ),
+                          // Show "Mở khóa" button if the role is "Khách hàng"
+                          if (currentRole == "Khách hàng")
+                            ElevatedButton.icon(
+                              onPressed: _handleLockUnlock,
+                              icon: Icon(Icons.lock_open),
+                              label: Text("Mở khóa"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey,
+                              ),
+                            ),
                           SizedBox(width: 12),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => OpenTableScreen()));
-                            },
-                            icon: Icon(Icons.event_seat),
-                            label: Text("Mở bàn"),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                          ),
+                          if (currentRole == "Nhân viên phục vụ" || currentRole == "Quản lý")
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => OpenTableScreen()));
+                              },
+                              icon: Icon(Icons.event_seat),
+                              label: Text("Mở bàn"),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                            ),
                         ],
                       ),
                       Container(
@@ -247,70 +299,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          // 🔹 Sidebar giỏ hàng
-          if (MediaQuery.of(context).size.width > 1100)
-            Container(
-              width: 320,
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.grey.shade100, border: Border(left: BorderSide(color: Colors.grey))),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Giỏ hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  Divider(),
-                  Expanded(
-                    child: cart.isEmpty
-                        ? Center(child: Text("Chưa có món nào được thêm."))
-                        : ListView(
-                      children: cart.map((item) {
-                        return ListTile(
-                          leading: Image.network(
-                            item["image"] ?? '',
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Image.asset('assets/food.jpg', width: 80, height: 80, fit: BoxFit.cover);
-                            },
-                          )
-                          ,
-                          title: Text(item["name"], style: TextStyle(fontSize: 14)),
-                          subtitle: Text("x${item["quantity"]}"),
-                          trailing: Text("\$${(item["price"] * item["quantity"]).toStringAsFixed(2)}"),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  TextField(
-                    maxLines: 2,
-                    decoration: InputDecoration(
-                      hintText: "Thêm ghi chú cho đơn hàng...",
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onChanged: (value) => orderNote = value,
-                  ),
-                  SizedBox(height: 10),
-                  Text("Tổng cộng: \$${subtotal.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold)),
-                  SizedBox(height: 10),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      if (cart.isEmpty) return;
-                      placeOrder();
-                      setState(() {
-                        cart.clear();
-                        orderNote = "";
-                      });
-                    },
-                    icon: Icon(Icons.check_circle),
-                    label: Text("Đặt món"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );
@@ -393,5 +381,4 @@ class _HomeScreenState extends State<HomeScreen> {
       print("❌ Đặt món thất bại: ${response.body}");
     }
   }
-
 }

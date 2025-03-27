@@ -95,15 +95,16 @@ class Sidebar extends StatelessWidget {
               isSelected: selectedItem == "Thống kê",
               onTap: () => navigateToPage(context, "Thống kê"),
             ),
-          SidebarItem(
-            icon: Icons.vpn_key,
-            title: "Generate Code",
-            isSelected: selectedItem == "Generate Code",
-            onTap: () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const GenerateSecretCode()),
+          if (role == "Quản lý")
+            SidebarItem(
+              icon: Icons.vpn_key,
+              title: "Generate Code",
+              isSelected: selectedItem == "Generate Code",
+              onTap: () => Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const GenerateSecretCode()),
+              ),
             ),
-          ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 10),
             child: Divider(color: Colors.white54),
