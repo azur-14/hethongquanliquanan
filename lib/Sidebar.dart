@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'KitchenMenuScreen.dart';
+import 'KitchenOrderScreen.dart';
 import 'Welcome.dart';
 import 'OrderPage.dart';
 import 'SidebarItem.dart';
@@ -20,28 +22,34 @@ class Sidebar extends StatelessWidget {
   void navigateToPage(BuildContext context, String title) {
     if (title == selectedItem) return;
 
-    if (title == "Món ăn") {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => HomeScreen(
-            role: role,
-            table: table,
-          ),
-        ),
-      );
-    } else if (title == "Đơn món") {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => OrderPage(
-            role: role,
-            table: table,
-          ),
-        ),
-      );
+    Widget targetPage;
+
+    if (role == "Nhân viên bếp") {
+      // Nhân viên bếp
+      if (title == "Món ăn") {
+        targetPage = KitchenMenuScreen();
+      } else if (title == "Đơn món") {
+        targetPage = KitchenOrderScreen();
+      } else {
+        return;
+      }
+    } else {
+      // Các role khác
+      if (title == "Món ăn") {
+        targetPage = HomeScreen(role: role, table: table);
+      } else if (title == "Đơn món") {
+        targetPage = OrderPage(role: role, table: table);
+      } else {
+        return;
+      }
     }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => targetPage),
+    );
   }
+
 
   @override
   Widget build(BuildContext context) {

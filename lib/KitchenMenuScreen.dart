@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'Sidebar.dart';
 
 class KitchenMenuScreen extends StatefulWidget {
   const KitchenMenuScreen({Key? key}) : super(key: key);
@@ -29,33 +30,24 @@ class _KitchenMenuScreenState extends State<KitchenMenuScreen> {
     return Scaffold(
       body: Row(
         children: [
-          Container(
-            width: 200,
-            color: Color(0xFF2F2F3E),
-            child: Column(
-              children: [
-                SizedBox(height: 40),
-                Text("EatEasy", style: TextStyle(color: Colors.orange, fontSize: 22)),
-                SizedBox(height: 40),
-                SidebarButton(icon: Icons.restaurant_menu, label: "MÓN ĂN", selected: true),
-                SidebarButton(icon: Icons.list_alt, label: "ĐƠN MÓN", selected: false),
-                Spacer(),
-                SidebarButton(icon: Icons.logout, label: "Thoát", selected: false),
-                SizedBox(height: 30),
-              ],
-            ),
+          Sidebar(
+            selectedItem: "Món ăn",
+            role: "Nhân viên bếp",
+            onSelectItem: (_) {},
           ),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: filters.map((f) {
                       return Padding(
                         padding: const EdgeInsets.only(right: 10),
-                        child: FilterChip(
+                        child: ChoiceChip(
                           label: Text(f),
+                          selectedColor: Colors.orangeAccent,
                           selected: selectedFilter == f,
                           onSelected: (_) {
                             setState(() => selectedFilter = f);
@@ -64,47 +56,100 @@ class _KitchenMenuScreenState extends State<KitchenMenuScreen> {
                       );
                     }).toList(),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   TextField(
                     decoration: InputDecoration(
-                      hintText: 'Tìm kiếm...',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      hintText: 'Tìm kiếm món...',
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.grey.shade200,
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
                     ),
                     onChanged: (value) => setState(() => searchQuery = value),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Expanded(
                     child: GridView.builder(
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 4,
-                        childAspectRatio: 0.75,
-                        crossAxisSpacing: 20,
-                        mainAxisSpacing: 20,
+                        crossAxisCount: MediaQuery.of(context).size.width > 1200 ? 5 : 4,
+                        childAspectRatio: 0.8,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
                       ),
                       itemCount: filteredItems.length,
                       itemBuilder: (context, index) {
                         final item = filteredItems[index];
                         return Container(
-                          padding: EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: const [
+                              BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 6,
+                                  offset: Offset(0, 4))
+                            ],
                           ),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Image.asset(item['image'], width: 80, height: 80),
-                              SizedBox(height: 10),
-                              Text(item['name'], style: TextStyle(fontWeight: FontWeight.bold)),
-                              Spacer(),
-                              Switch(
-                                value: item['available'],
-                                onChanged: (val) {
-                                  setState(() {
-                                    item['available'] = val;
-                                  });
-                                },
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.asset(
+                                  item['image'],
+                                  width: double.infinity,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                item['name'],
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                              const Spacer(),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      color: item['available']
+                                          ? Colors.green
+                                          : Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Switch(
+                                    activeColor: Colors.green,
+                                    inactiveThumbColor: Colors.redAccent,
+                                    value: item['available'],
+                                    onChanged: (val) {
+                                      setState(() {
+                                        item['available'] = val;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                item['available']
+                                    ? "Đủ nguyên liệu"
+                                    : "Hết nguyên liệu",
+                                style: TextStyle(
+                                    color: item['available']
+                                        ? Colors.green
+                                        : Colors.red,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),
@@ -117,33 +162,6 @@ class _KitchenMenuScreenState extends State<KitchenMenuScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class SidebarButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool selected;
-
-  const SidebarButton({
-    required this.icon,
-    required this.label,
-    required this.selected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 6),
-      decoration: selected
-          ? BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(10))
-          : null,
-      child: ListTile(
-        leading: Icon(icon, color: Colors.white),
-        title: Text(label, style: TextStyle(color: Colors.white)),
-        onTap: () {},
       ),
     );
   }
