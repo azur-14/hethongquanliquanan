@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'GeneralizeSecretCode.dart';
 import 'KitchenMenuScreen.dart';
 import 'KitchenOrderScreen.dart';
 import 'Welcome.dart';
 import 'OrderPage.dart';
 import 'SidebarItem.dart';
 import 'menu.dart';
+import 'thongke.dart';
 
 class Sidebar extends StatelessWidget {
   final String selectedItem;
@@ -25,7 +27,6 @@ class Sidebar extends StatelessWidget {
     Widget targetPage;
 
     if (role == "Nhân viên bếp") {
-      // Nhân viên bếp
       if (title == "Món ăn") {
         targetPage = KitchenMenuScreen();
       } else if (title == "Đơn món") {
@@ -34,11 +35,12 @@ class Sidebar extends StatelessWidget {
         return;
       }
     } else {
-      // Các role khác
       if (title == "Món ăn") {
         targetPage = HomeScreen(role: role, table: table);
       } else if (title == "Đơn món") {
         targetPage = OrderPage(role: role, table: table);
+      } else if (title == "Thống kê" && role == "Quản lý") {
+        targetPage = BillStatisticsScreen();
       } else {
         return;
       }
@@ -49,7 +51,6 @@ class Sidebar extends StatelessWidget {
       MaterialPageRoute(builder: (context) => targetPage),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -86,6 +87,23 @@ class Sidebar extends StatelessWidget {
             onTap: () => navigateToPage(context, "Đơn món"),
           ),
 
+          // Thống kê (chỉ dành cho Quản lý)
+          if (role == "Quản lý")
+            SidebarItem(
+              icon: Icons.bar_chart,
+              title: "Thống kê",
+              isSelected: selectedItem == "Thống kê",
+              onTap: () => navigateToPage(context, "Thống kê"),
+            ),
+          SidebarItem(
+            icon: Icons.vpn_key,
+            title: "Generate Code",
+            isSelected: selectedItem == "Generate Code",
+            onTap: () => Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const GenerateSecretCode()),
+            ),
+          ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 10),
             child: Divider(color: Colors.white54),

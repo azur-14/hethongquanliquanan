@@ -3,16 +3,6 @@ import 'menu.dart';
 import 'KitchenMenuScreen.dart';
 import 'thongke.dart';
 
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: WelcomeScreen(),
-    );
-  }
-}
-
 class WelcomeScreen extends StatefulWidget {
   @override
   _WelcomeScreenState createState() => _WelcomeScreenState();
@@ -20,13 +10,46 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
   String? selectedRole;
-  String? selectedTable;
+  final TextEditingController passwordController = TextEditingController();
   final List<String> roles = [
     'Quản lý',
     'Nhân viên phục vụ',
     'Nhân viên bếp',
   ];
-  final List<String> tables = List.generate(10, (index) => 'Bàn ${index + 1}');
+
+  final String managerPassword = '123456'; // mật khẩu mẫu
+
+  void validateAndNavigate() {
+    if (selectedRole == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Vui lòng chọn vai trò')),
+      );
+      return;
+    }
+
+    if (selectedRole == 'Quản lý') {
+      if (passwordController.text != managerPassword) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Mật khẩu sai!')),
+        );
+        return;
+      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => BillStatisticsScreen()),
+      );
+    } else if (selectedRole == 'Nhân viên bếp') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => KitchenMenuScreen()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => HomeScreen(role: selectedRole!)),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +57,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Ảnh góc trên trái
           Positioned(
             top: 0,
             left: 0,
@@ -43,7 +65,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               width: MediaQuery.of(context).size.width * 0.4,
             ),
           ),
-          // Ảnh góc dưới phải
           Positioned(
             bottom: 0,
             right: 0,
@@ -52,8 +73,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               width: MediaQuery.of(context).size.width * 0.4,
             ),
           ),
-
-          // Nội dung chính
           Column(
             children: [
               Expanded(
@@ -78,8 +97,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           style: TextStyle(fontSize: 16, color: Colors.black54),
                         ),
                         SizedBox(height: 20),
-
-                        // Chọn vai trò
                         Container(
                           width: MediaQuery.of(context).size.width * 0.6,
                           child: DropdownButtonFormField<String>(
@@ -89,21 +106,32 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             ),
-                            items: roles.map((role) {
-                              return DropdownMenuItem(value: role, child: Text(role));
-                            }).toList(),
+                            items: roles
+                                .map((role) => DropdownMenuItem(value: role, child: Text(role)))
+                                .toList(),
                             onChanged: (value) {
                               setState(() {
                                 selectedRole = value;
-
+                                passwordController.clear();
                               });
                             },
                           ),
                         ),
-
+                        SizedBox(height: 15),
+                        if (selectedRole == 'Quản lý')
+                          Container(
+                            width: MediaQuery.of(context).size.width * 0.6,
+                            child: TextField(
+                              controller: passwordController,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                labelText: "Mật khẩu quản lý",
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              ),
+                            ),
+                          ),
                         SizedBox(height: 20),
-
-                        // Nút Get Started
                         Container(
                           width: MediaQuery.of(context).size.width * 0.5,
                           child: ElevatedButton(
@@ -114,44 +142,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               elevation: 5,
                               shadowColor: Colors.orangeAccent,
                             ),
-                            onPressed: () {
-                              if (selectedRole == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Vui lòng chọn vai trò')),
-                                );
-                                return;
-                              }
-
-                              if (selectedRole == 'Khách hàng' && selectedTable == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Vui lòng chọn bàn cho khách hàng')),
-                                );
-                                return;
-                              }
-
-                              // Dẫn đến các màn tương ứng
-                              if (selectedRole == 'Quản lý') {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => BillStatisticsScreen()),
-                                );
-                              } else if (selectedRole == 'Nhân viên bếp') {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => KitchenMenuScreen()),
-                                );
-                              } else {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => HomeScreen(
-                                      role: selectedRole!,
-                                      table: selectedRole == 'Khách hàng' ? selectedTable : null,
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
+                            onPressed: validateAndNavigate,
                             child: Text('Get Started', style: TextStyle(color: Colors.white, fontSize: 18)),
                           ),
                         ),
@@ -160,8 +151,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                 ),
               ),
-
-              // Footer
               Expanded(
                 flex: 2,
                 child: Align(
@@ -206,3 +195,4 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     );
   }
 }
+

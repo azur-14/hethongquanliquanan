@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'bill.dart';
+import 'Sidebar.dart';
+import 'package:month_picker_dialog/month_picker_dialog.dart';
+
 class BillStatisticsScreen extends StatefulWidget {
   const BillStatisticsScreen({Key? key}) : super(key: key);
 
@@ -8,166 +11,245 @@ class BillStatisticsScreen extends StatefulWidget {
   State<BillStatisticsScreen> createState() => _BillStatisticsScreenState();
 }
 
-class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
-  DateTimeRange? selectedRange;
-  final List<Map<String, dynamic>> allBills = [
-    {'billId': '#HD001', 'table': 'Bàn 1', 'total': 50.0, 'date': DateTime(2025, 3, 10)},
-    {'billId': '#HD002', 'table': 'Bàn 2', 'total': 80.0, 'date': DateTime(2025, 3, 15)},
-    {'billId': '#HD003', 'table': 'Bàn 3', 'total': 60.0, 'date': DateTime(2025, 3, 20)},
-    {'billId': '#HD004', 'table': 'Bàn 1', 'total': 40.0, 'date': DateTime(2025, 3, 25)},
-  ];
+enum FilterOption { shift, day, month, quarter, year }
 
+class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
+  FilterOption selectedOption = FilterOption.day;
+  DateTime selectedDate = DateTime.now();
+  int selectedShift = 1;
+  // Thêm đoạn này vào State:
+  int selectedQuarter = 1;
+  int selectedYearForQuarter = DateTime.now().year;
+
+// Hàm filteredBills sửa lại như sau:
   List<Map<String, dynamic>> get filteredBills {
-    if (selectedRange == null) return allBills;
     return allBills.where((bill) {
-      return bill['date'].isAfter(selectedRange!.start.subtract(Duration(days: 1))) &&
-          bill['date'].isBefore(selectedRange!.end.add(Duration(days: 1)));
+      final billDate = bill['time'] as DateTime;
+      switch (selectedOption) {
+        case FilterOption.shift:
+          return billDate.year == selectedDate.year &&
+              billDate.month == selectedDate.month &&
+              billDate.day == selectedDate.day &&
+              ((selectedShift == 1 && billDate.hour < 12) ||
+                  (selectedShift == 2 && billDate.hour >= 12));
+        case FilterOption.day:
+          return billDate.year == selectedDate.year &&
+              billDate.month == selectedDate.month &&
+              billDate.day == selectedDate.day;
+        case FilterOption.month:
+          return billDate.year == selectedDate.year &&
+              billDate.month == selectedDate.month;
+        case FilterOption.quarter:
+          int billQuarter = ((billDate.month - 1) ~/ 3) + 1;
+          return billDate.year == selectedYearForQuarter &&
+              billQuarter == selectedQuarter;
+        case FilterOption.year:
+          return billDate.year == selectedDate.year;
+        default:
+          return false;
+      }
     }).toList();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    final now = DateTime.now();
-    selectedRange = DateTimeRange(
-      start: DateTime(now.year, now.month, 1),
-      end: now,
-    );
+
+  final List<Map<String, dynamic>> allBills = [
+    {
+      'billId': '#HD001',
+      'tableId': 1,
+      'status': 'completed',
+      'note': '',
+      'total': 50.0,
+      'time': DateTime(2025, 3, 27, 8, 30),
+    },
+    {
+      'billId': '#HD002',
+      'tableId': 2,
+      'status': 'completed',
+      'note': '',
+      'total': 80.0,
+      'time': DateTime(2025, 3, 27, 14, 15),
+    },
+    {
+      'billId': '#HD003',
+      'tableId': 3,
+      'status': 'pending',
+      'note': '',
+      'total': 60.0,
+      'time': DateTime(2025, 3, 26, 11, 45),
+    },
+    {
+      'billId': '#HD004',
+      'tableId': 1,
+      'status': 'completed',
+      'note': '',
+      'total': 40.0,
+      'time': DateTime(2025, 3, 25, 19, 20),
+    },
+    {
+      'billId': '#HD005',
+      'tableId': 2,
+      'status': 'completed',
+      'note': '',
+      'total': 100.0,
+      'time': DateTime(2025, 2, 20, 9, 50),
+    },
+    {
+      'billId': '#HD006',
+      'tableId': 3,
+      'status': 'completed',
+      'note': '',
+      'total': 30.0,
+      'time': DateTime(2025, 1, 15, 15, 40),
+    },
+    {
+      'billId': '#HD007',
+      'tableId': 1,
+      'status': 'completed',
+      'note': '',
+      'total': 75.0,
+      'time': DateTime(2024, 12, 31, 10, 10),
+    },
+    {
+      'billId': '#HD008',
+      'tableId': 2,
+      'status': 'completed',
+      'note': '',
+      'total': 90.0,
+      'time': DateTime(2024, 12, 31, 17, 25),
+    },
+  ];
+
+
+  void _pickDate(BuildContext context) async {
+    if (selectedOption == FilterOption.month) {
+      final picked = await showMonthPicker(
+        context: context,
+        initialDate: selectedDate,
+        firstDate: DateTime(2023),
+        lastDate: DateTime(2100),
+      );
+      if (picked != null) {
+        setState(() => selectedDate = picked);
+      }
+    } else if (selectedOption == FilterOption.year || selectedOption == FilterOption.quarter) {
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: selectedDate,
+        firstDate: DateTime(2023),
+        lastDate: DateTime(2100),
+        initialEntryMode: DatePickerEntryMode.calendarOnly,
+      );
+      if (picked != null) {
+        setState(() => selectedDate = DateTime(picked.year));
+      }
+    } else {
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: selectedDate,
+        firstDate: DateTime(2023),
+        lastDate: DateTime(2100),
+      );
+      if (picked != null) {
+        setState(() => selectedDate = picked);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final totalRevenue = filteredBills.fold(0.0, (sum, bill) => sum + bill['total']);
-    final formatter = DateFormat('dd/MM/yyyy');
 
     return Scaffold(
-      backgroundColor: Color(0xFFF9F9F9),
       body: Row(
         children: [
-          // Sidebar
-          Container(
-            width: 200,
-            color: Color(0xFF2F2F3E),
-            child: Column(
-              children: [
-                SizedBox(height: 40),
-                Text("EatEasy", style: TextStyle(color: Colors.orange, fontSize: 22)),
-                SizedBox(height: 40),
-                SidebarButton(icon: Icons.restaurant_menu, label: "Món Ăn", selected: false),
-                SidebarButton(icon: Icons.shopping_cart, label: "Đơn Món", selected: false),
-                SidebarButton(icon: Icons.receipt_long, label: "Hóa Đơn", selected: true),
-                Spacer(),
-                SidebarButton(icon: Icons.logout, label: "Thoát", selected: false),
-                SizedBox(height: 20),
-              ],
-            ),
-          ),
-          // Main content
+          Sidebar(selectedItem: "Hóa Đơn", role: "Quản lý", onSelectItem: (_) {}),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("Thống kê hóa đơn", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          final picked = await showDateRangePicker(
-                            context: context,
-                            firstDate: DateTime(2023),
-                            lastDate: DateTime(2100),
-                            initialDateRange: selectedRange,
-                          );
-                          if (picked != null) {
-                            setState(() {
-                              selectedRange = picked;
-                            });
-                          }
-                        },
-                        icon: Icon(Icons.date_range),
-                        label: Text(
-                          selectedRange == null
-                              ? "Chọn thời gian"
-                              : "${formatter.format(selectedRange!.start)} - ${formatter.format(selectedRange!.end)}",
-                        ),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                      DropdownButton<FilterOption>(
+                        value: selectedOption,
+                        onChanged: (val) => setState(() => selectedOption = val!),
+                        items: const [
+                          DropdownMenuItem(value: FilterOption.shift, child: Text("Theo Ca")),
+                          DropdownMenuItem(value: FilterOption.day, child: Text("Theo Ngày")),
+                          DropdownMenuItem(value: FilterOption.month, child: Text("Theo Tháng")),
+                          DropdownMenuItem(value: FilterOption.quarter, child: Text("Theo Quý")),
+                          DropdownMenuItem(value: FilterOption.year, child: Text("Theo Năm")),
+                        ],
                       ),
+                      SizedBox(width: 20),
+
+                      // Chọn Ca (khi chọn thống kê theo Ca)
+                      if (selectedOption == FilterOption.shift)
+                        DropdownButton<int>(
+                          value: selectedShift,
+                          items: [1, 2]
+                              .map((e) => DropdownMenuItem(value: e, child: Text("Ca $e")))
+                              .toList(),
+                          onChanged: (val) => setState(() => selectedShift = val!),
+                        ),
+
+                      // Chọn Quý và Năm riêng biệt (khi chọn thống kê theo quý)
+                      if (selectedOption == FilterOption.quarter) ...[
+                        DropdownButton<int>(
+                          value: selectedQuarter,
+                          items: [1, 2, 3, 4]
+                              .map((e) => DropdownMenuItem(value: e, child: Text("Quý $e")))
+                              .toList(),
+                          onChanged: (val) => setState(() => selectedQuarter = val!),
+                        ),
+                        SizedBox(width: 20),
+                        DropdownButton<int>(
+                          value: selectedYearForQuarter,
+                          items: List.generate(10, (index) => 2023 + index)
+                              .map((e) => DropdownMenuItem(value: e, child: Text("$e")))
+                              .toList(),
+                          onChanged: (val) => setState(() => selectedYearForQuarter = val!),
+                        ),
+                      ],
+
+                      // Các loại thống kê còn lại dùng DatePicker
+                      if (selectedOption != FilterOption.quarter && selectedOption != FilterOption.shift)
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
+                          onPressed: () => _pickDate(context),
+                          child: Text(selectedOption == FilterOption.year
+                              ? "Chọn năm: ${selectedDate.year}"
+                              : selectedOption == FilterOption.month
+                              ? DateFormat('MM/yyyy').format(selectedDate)
+                              : DateFormat('dd/MM/yyyy').format(selectedDate)),
+                        ),
+
+                      if (selectedOption == FilterOption.shift)
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
+                          onPressed: () => _pickDate(context),
+                          child: Text(DateFormat('dd/MM/yyyy').format(selectedDate)),
+                        ),
                     ],
                   ),
+
                   SizedBox(height: 20),
-                  // Stats
-                  Row(
-                    children: [
-                      Expanded(
-                        child: StatCard(
-                          title: "Số hóa đơn",
-                          subtitle: "Tổng số hóa đơn",
-                          value: filteredBills.length.toString(),
-                          icon: Icons.receipt,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: StatCard(
-                          title: "Doanh thu",
-                          subtitle: "Tổng tiền thu",
-                          value: "\$${totalRevenue.toStringAsFixed(2)}",
-                          icon: Icons.attach_money,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 24),
-                  // Bill list
                   Expanded(
                     child: ListView.separated(
                       itemCount: filteredBills.length,
-                      separatorBuilder: (_, __) => SizedBox(height: 16),
+                      separatorBuilder: (_, __) => SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final bill = filteredBills[index];
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => BillScreen(billId: bill['billId']),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            padding: EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // Thông tin bên trái
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text("Mã hóa đơn: ${bill['billId']}", style: TextStyle(fontWeight: FontWeight.bold)),
-                                    Text("Bàn: ${bill['table']}"),
-                                    Text("Ngày: ${DateFormat('dd/MM/yyyy').format(bill['date'])}"),
-                                    Text("Ca: ${bill['shift']}"),
-                                  ],
-                                ),
-                                // Tổng tiền
-                                Text(
-                                  "\$${bill['total'].toStringAsFixed(2)}",
-                                  style: TextStyle(color: Colors.orange, fontSize: 18, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
+                        final shift = bill['time'].hour < 12 ? "Ca 1" : "Ca 2";
+                        return ListTile(
+                          tileColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          leading: Icon(Icons.receipt_long, color: Colors.orange),
+                          title: Text("${bill['billId']} - Bàn ${bill['tableId']}"),
+                          subtitle: Text("${DateFormat('dd/MM/yyyy - HH:mm').format(bill['time'])} ($shift)"),
+                          trailing: Text("\$${bill['total'].toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold)),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BillScreen(billId: bill['billId']))),
                         );
                       },
                     ),
@@ -182,28 +264,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
   }
 }
 
-class SidebarButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool selected;
 
-  const SidebarButton({required this.icon, required this.label, required this.selected});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 6),
-      decoration: selected
-          ? BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(10))
-          : null,
-      child: ListTile(
-        leading: Icon(icon, color: Colors.white),
-        title: Text(label, style: TextStyle(color: Colors.white)),
-        onTap: () {},
-      ),
-    );
-  }
-}
 
 class StatCard extends StatelessWidget {
   final String title;
