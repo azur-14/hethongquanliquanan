@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'Sidebar.dart';
 
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 class GenerateSecretCode extends StatefulWidget {
   const GenerateSecretCode({Key? key}) : super(key: key);
 
@@ -11,20 +14,6 @@ class GenerateSecretCode extends StatefulWidget {
 
 class _GenerateSecretCodeState extends State<GenerateSecretCode> {
   String? generatedCode;
-
-  String generateCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    final random = Random();
-    return String.fromCharCodes(
-      Iterable.generate(6, (_) => chars.codeUnitAt(random.nextInt(chars.length))),
-    );
-  }
-
-  void generateNewCode() {
-    setState(() {
-      generatedCode = generateCode();
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,4 +104,24 @@ class _GenerateSecretCodeState extends State<GenerateSecretCode> {
       ),
     );
   }
+
+  Future<void> generateNewCode() async {
+    final url = Uri.parse("http://localhost:3002/api/codes/create"); // 🔁 đổi domain nếu cần
+
+    try {
+      final response = await http.post(url);
+
+      if (response.statusCode == 201) {
+        final data = json.decode(response.body);
+        setState(() {
+          generatedCode = data['secretCode']; // gán mã để hiển thị
+        });
+      } else {
+        print("❌ Lỗi khi tạo mã: ${response.body}");
+      }
+    } catch (e) {
+      print("❌ Lỗi kết nối khi tạo mã: $e");
+    }
+  }
+
 }

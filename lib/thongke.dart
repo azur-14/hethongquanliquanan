@@ -233,7 +233,29 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
                         ),
                     ],
                   ),
-
+                  Row(
+                    children: [
+                      Expanded(
+                        child: StatCard(
+                          title: "Số hóa đơn",
+                          subtitle: "Tổng số hóa đơn",
+                          value: filteredBills.length.toString(),
+                          icon: Icons.receipt,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      Expanded(
+                        child: StatCard(
+                          title: "Doanh thu",
+                          subtitle: "Tổng tiền thu",
+                          value: "\$${totalRevenue.toStringAsFixed(2)}",
+                          icon: Icons.attach_money,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
                   SizedBox(height: 20),
                   Expanded(
                     child: ListView.separated(

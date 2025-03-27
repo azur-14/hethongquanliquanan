@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:soagiuakiquanan/models/OrderItems.dart';
 import 'Sidebar.dart';
+import 'models/Order.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class KitchenOrderScreen extends StatefulWidget {
   const KitchenOrderScreen({Key? key}) : super(key: key);
@@ -10,102 +14,16 @@ class KitchenOrderScreen extends StatefulWidget {
 }
 
 class _KitchenOrderScreenState extends State<KitchenOrderScreen> {
-  List<Map<String, dynamic>> orders = [
-    {
-      'table': 'Bàn 001',
-      'status': 'Đang chuẩn bị',
-      'locked': false,
-      'orderTime': DateTime.now().subtract(Duration(minutes: 15)),
-      'note': 'Khách yêu cầu ít hành, thêm tương ớt riêng',
-      'items': [
-        {'name': 'Phở bò', 'qty': 2, 'done': false},
-        {'name': 'Cafe đá', 'qty': 1, 'done': false},
-      ],
-    },
-    {
-      'table': 'Bàn 002',
-      'status': 'Hoàn tất',
-      'locked': true,
-      'orderTime': DateTime.now().subtract(Duration(minutes: 30)),
-      'note': 'Thêm pate vào bánh mì',
-      'items': [
-        {'name': 'Bánh mì', 'qty': 1, 'done': true},
-      ],
-    },
-  ];
+  List<Order> orders = [];
 
-  void _updateOrderStatus(Map<String, dynamic> order) {
-    bool allDone = order['items'].every((item) => (item as Map)['done']);
-    setState(() {
-      order['status'] = allDone ? 'Hoàn tất' : 'Đang chuẩn bị';
-    });
-  }
-
-  void _showOrderDetailDialog(Map<String, dynamic> order) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              title: Text('Chi tiết ${order['table']}'),
-              content: SizedBox(
-                width: 400,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    order['note'] != null && order['note'].toString().isNotEmpty
-                        ? Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Text(
-                        'Ghi chú đơn hàng: ${order['note']}',
-                        style: TextStyle(fontStyle: FontStyle.italic, color: Colors.blueAccent),
-                      ),
-                    )
-                        : SizedBox.shrink(),
-                    Expanded(
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: order['items'].map<Widget>((item) {
-                          return CheckboxListTile(
-                            title: Text('${item['name']} (x${item['qty']})'),
-                            value: item['done'],
-                            onChanged: order['locked']
-                                ? null
-                                : (val) {
-                              setStateDialog(() {
-                                item['done'] = val!;
-                              });
-                            },
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                ElevatedButton(
-                  child: Text('Đóng'),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _updateOrderStatus(order);
-                  },
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+  @override
+  void initState() {
+    super.initState();
+    fetchOrders();
   }
 
   @override
   Widget build(BuildContext context) {
-    final visibleOrders = orders.where((order) =>
-    order['status'] == 'Đang chuẩn bị' || order['status'] == 'Hoàn tất').toList();
-
     return Scaffold(
       body: Row(
         children: [
@@ -131,12 +49,12 @@ class _KitchenOrderScreenState extends State<KitchenOrderScreen> {
                         crossAxisSpacing: 18,
                         mainAxisSpacing: 18,
                       ),
-                      itemCount: visibleOrders.length,
+                      itemCount: orders.length,
                       itemBuilder: (context, index) {
-                        final order = visibleOrders[index];
-                        Color statusColor = order['status'] == 'Đang chuẩn bị'
-                            ? Colors.blue
-                            : Colors.green;
+                        final order = orders[index];
+                        final isCompleted = order.details.every((d) => d.status);
+                        final statusText = isCompleted ? "Hoàn tất" : "Đang chuẩn bị";
+                        final statusColor = isCompleted ? Colors.green : Colors.blue;
 
                         return Container(
                           decoration: BoxDecoration(
@@ -153,25 +71,12 @@ class _KitchenOrderScreenState extends State<KitchenOrderScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(order['table'],
-                                      style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold)),
-                                  Icon(
-                                    order['locked']
-                                        ? Icons.lock
-                                        : Icons.lock_open,
-                                    color: order['locked']
-                                        ? Colors.grey
-                                        : Colors.green,
-                                  ),
-                                ],
-                              ),
+                              Text("Bàn ${order.tableId}",
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold)),
                               Divider(),
-                              Text(order['status'],
+                              Text(statusText,
                                   style: TextStyle(
                                       fontSize: 14,
                                       color: statusColor,
@@ -182,10 +87,8 @@ class _KitchenOrderScreenState extends State<KitchenOrderScreen> {
                                   Icon(Icons.access_time,
                                       size: 16, color: Colors.grey),
                                   SizedBox(width: 5),
-                                  Text(DateFormat('HH:mm dd/MM/yyyy')
-                                      .format(order['orderTime']),
-                                      style: TextStyle(
-                                          fontSize: 12, color: Colors.grey)),
+                                  Text(DateFormat('HH:mm dd/MM/yyyy').format(order.time),
+                                      style: TextStyle(fontSize: 12, color: Colors.grey)),
                                 ],
                               ),
                               Spacer(),
@@ -212,5 +115,98 @@ class _KitchenOrderScreenState extends State<KitchenOrderScreen> {
         ],
       ),
     );
+  }
+
+  void _showOrderDetailDialog(Order order) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: Text('Chi tiết ${order.tableId != null ? "Bàn ${order.tableId}" : ""}'),
+              content: SizedBox(
+                width: 400,
+                height: 400,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (order.note != null && order.note!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Text(
+                          'Ghi chú đơn hàng: ${order.note}',
+                          style: TextStyle(
+                            fontStyle: FontStyle.italic,
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                      ),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: order.details.length,
+                        itemBuilder: (context, index) {
+                          final detail = order.details[index];
+                          return CheckboxListTile(
+                            title: Text('${detail.name} (x${detail.quantity.toInt()})'),
+                            value: detail.status,
+                            onChanged: (val) async {
+                              setStateDialog(() {
+                                detail.status = val!;
+                              });
+
+                              try {
+                                final uri = Uri.parse('http://localhost:3001/api/orderdetails/${detail.id}/status');
+                                final response = await http.put(
+                                  uri,
+                                  headers: {'Content-Type': 'application/json'},
+                                  body: jsonEncode({'status': detail.status}),
+                                );
+                                if (response.statusCode != 200) {
+                                  print('❌ Cập nhật trạng thái thất bại');
+                                }
+                              } catch (e) {
+                                print('❌ Lỗi kết nối khi cập nhật trạng thái: $e');
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    setState(() {}); // Cập nhật lại trạng thái bên ngoài dialog
+                  },
+                  child: Text('Đóng'),
+                )
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> fetchOrders() async {
+    try {
+      final uri = Uri.parse("http://localhost:3001/api/orders/pending-with-details");
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        setState(() {
+          orders = data.map((item) => Order.fromJsonWithDetails(item)).toList();
+        });
+      } else {
+        print("Lỗi khi lấy đơn hàng: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Lỗi kết nối: $e");
+    }
   }
 }

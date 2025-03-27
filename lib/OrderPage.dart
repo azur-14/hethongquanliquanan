@@ -257,7 +257,6 @@ class _OrderPageState extends State<OrderPage> {
           orderItems = loadItems;
         });
       }
-      print("Lấy ok");
     } catch (e) {
       print("Lỗi khi lấy danh sách chi tiết hóa đơn: $e");
     }

@@ -20,7 +20,7 @@ class OrderItems {
   factory OrderItems.fromJson(Map<String, dynamic> json) {
     return OrderItems(
       id: json['_id'] ?? '',
-      foodId: json['foodId'] ?? '',
+      foodId: json['foodId'] is String ? json['foodId'] : json['foodId']['_id'] ?? '',
       name: json['name'] ?? '',
       image: json['image'] ?? 'assets/food.jpg',
       price: (json['price'] as num).toDouble(),

@@ -5,6 +5,7 @@ class Food {
   final String? description;
   final String? image;
   final String categoryName;
+  String status;
 
   Food({
     required this.id,
@@ -13,6 +14,7 @@ class Food {
     this.description,
     this.image,
     required this.categoryName,
+    required this.status,
   });
 
   factory Food.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class Food {
       description: json['description'],
       image: json['image'],
       categoryName: json['categoryName'] ?? 'Không rõ',
+      status: json['status'] ?? "inactive",
     );
   }
 }

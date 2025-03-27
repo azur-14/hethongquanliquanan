@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'Sidebar.dart';
+import 'models/Food.dart';
+
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class KitchenMenuScreen extends StatefulWidget {
   const KitchenMenuScreen({Key? key}) : super(key: key);
@@ -9,23 +13,28 @@ class KitchenMenuScreen extends StatefulWidget {
 }
 
 class _KitchenMenuScreenState extends State<KitchenMenuScreen> {
-  List<Map<String, dynamic>> menuItems = [
-    {'name': 'Egg Toast', 'image': 'assets/food.jpg', 'available': true},
-    {'name': 'Power Bowl', 'image': 'assets/food.jpg', 'available': true},
-    {'name': 'Mac and Cheese', 'image': 'assets/food.jpg', 'available': false},
-    {'name': 'Curry Salmon', 'image': 'assets/food.jpg', 'available': true},
-    {'name': 'Yogurt and Fruits', 'image': 'assets/food.jpg', 'available': false},
-  ];
+  List<Food> menuItems = [];
 
   String selectedFilter = 'Tất cả';
   final filters = ['Tất cả', 'Món chay', 'Đồ uống'];
   String searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    fetchFoodItems();
+  }
+
+  List<Food> get filteredItems {
+    return menuItems.where((item) {
+      final matchesSearch = item.name.toLowerCase().contains(searchQuery.toLowerCase());
+      final matchesCategory = selectedFilter == 'Tất cả' || item.categoryName == selectedFilter;
+      return matchesSearch && matchesCategory;
+    }).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    List<Map<String, dynamic>> filteredItems = menuItems
-        .where((item) => item['name'].toLowerCase().contains(searchQuery.toLowerCase()))
-        .toList();
 
     return Scaffold(
       body: Row(
@@ -51,6 +60,7 @@ class _KitchenMenuScreenState extends State<KitchenMenuScreen> {
                           selected: selectedFilter == f,
                           onSelected: (_) {
                             setState(() => selectedFilter = f);
+                            fetchFoodItems();
                           },
                         ),
                       );
@@ -67,7 +77,10 @@ class _KitchenMenuScreenState extends State<KitchenMenuScreen> {
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none),
                     ),
-                    onChanged: (value) => setState(() => searchQuery = value),
+                    onChanged: (value) {
+                      setState(() => searchQuery = value);
+                      fetchFoodItems();
+                    },
                   ),
                   const SizedBox(height: 20),
                   Expanded(
@@ -98,16 +111,19 @@ class _KitchenMenuScreenState extends State<KitchenMenuScreen> {
                             children: [
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: Image.asset(
-                                  item['image'],
-                                  width: double.infinity,
-                                  height: 100,
+                                child: Image.network(
+                                  item.image ?? '',
+                                  width: 80,
+                                  height: 80,
                                   fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Image.asset('assets/food.jpg', width: 80, height: 80, fit: BoxFit.cover);
+                                  },
                                 ),
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                item['name'],
+                                item.name,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold, fontSize: 15),
@@ -121,7 +137,7 @@ class _KitchenMenuScreenState extends State<KitchenMenuScreen> {
                                     width: 12,
                                     height: 12,
                                     decoration: BoxDecoration(
-                                      color: item['available']
+                                      color: item.status == "active"
                                           ? Colors.green
                                           : Colors.red,
                                       shape: BoxShape.circle,
@@ -131,21 +147,38 @@ class _KitchenMenuScreenState extends State<KitchenMenuScreen> {
                                   Switch(
                                     activeColor: Colors.green,
                                     inactiveThumbColor: Colors.redAccent,
-                                    value: item['available'],
-                                    onChanged: (val) {
-                                      setState(() {
-                                        item['available'] = val;
-                                      });
+                                    value: item.status == "active",
+                                    onChanged: (val) async {
+                                      final newStatus = val ? "active" : "inactive";
+
+                                      try {
+                                        final uri = Uri.parse("http://localhost:3001/api/foods/${item.id}/status");
+                                        final response = await http.put(
+                                          uri,
+                                          headers: {"Content-Type": "application/json"},
+                                          body: jsonEncode({"status": newStatus}),
+                                        );
+
+                                        if (response.statusCode == 200) {
+                                          setState(() {
+                                            item.status = newStatus;
+                                          });
+                                        } else {
+                                          print("Lỗi khi cập nhật trạng thái: ${response.body}");
+                                        }
+                                      } catch (e) {
+                                        print("Lỗi kết nối khi cập nhật trạng thái: $e");
+                                      }
                                     },
                                   ),
                                 ],
                               ),
                               Text(
-                                item['available']
+                                item.status == "active"
                                     ? "Đủ nguyên liệu"
                                     : "Hết nguyên liệu",
                                 style: TextStyle(
-                                    color: item['available']
+                                    color: item.status == "active"
                                         ? Colors.green
                                         : Colors.red,
                                     fontSize: 12,
@@ -165,4 +198,23 @@ class _KitchenMenuScreenState extends State<KitchenMenuScreen> {
       ),
     );
   }
+
+  Future<void> fetchFoodItems() async {
+    try {
+      final uri = Uri.parse("http://localhost:3001/api/foods?search=$searchQuery&categoryName=${selectedFilter == 'Tất cả' ? '' : selectedFilter}");
+
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        setState(() {
+          menuItems = data.map((item) => Food.fromJson(item)).toList();
+        });
+      } else {
+        print("Lỗi khi lấy danh sách món ăn: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Lỗi kết nối đến server: $e");
+    }
+  }
+
 }
