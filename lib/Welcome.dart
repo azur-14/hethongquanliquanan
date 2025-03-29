@@ -3,6 +3,9 @@ import 'menu.dart';
 import 'KitchenMenuScreen.dart';
 import 'thongke.dart';
 
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 class WelcomeScreen extends StatefulWidget {
   @override
   _WelcomeScreenState createState() => _WelcomeScreenState();
@@ -17,7 +20,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     'Nhân viên bếp',
   ];
 
-  final String managerPassword = '123456'; // mật khẩu mẫu
+  String? managerPassword;
+
+  @override
+  void initState() {
+    super.initState();
+    checkAdminPassword();
+  }
 
   void validateAndNavigate() {
     if (selectedRole == null) {
@@ -194,5 +203,33 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       ),
     );
   }
+
+  Future<String?> fetchAdminPassword() async {
+    try {
+      final uri = Uri.parse("http://localhost:3003/api/users/password/admin");
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['password']; // 👈 Lấy mật khẩu từ JSON
+      } else {
+        print("❌ Lỗi server: ${response.statusCode}");
+        return null;
+      }
+    } catch (e) {
+      print("❌ Lỗi kết nối: $e");
+      return null;
+    }
+  }
+
+  void checkAdminPassword() async {
+    managerPassword = await fetchAdminPassword();
+    if (managerPassword != null) {
+      print("🔑 Mật khẩu của admin: $managerPassword");
+    } else {
+      print("❌ Không thể lấy mật khẩu admin.");
+    }
+  }
+
 }
 

@@ -41,8 +41,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     currentRole = widget.role;
-    fetchFoodItems();
-    fetchTableList();
+    fetchFoodAndTable();
+  }
+
+  Future<void> fetchFoodAndTable() async {
+    await fetchFoodItems();
+    await fetchTableList();
   }
 
   void _handleLockUnlock() {
@@ -183,22 +187,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                     (currentRole == "Nhân viên phục vụ" || currentRole == "Quản lý")
                     ? DropdownButton<String>(
-                    value: selectedTable,
-                    items: tables
-                        .where((table) => table.status) // 👉 chỉ lấy những bàn đã mở
-                        .map((table) {
-                    return DropdownMenuItem(
-                    value: table.name,
-                    child: Text(table.name , style: TextStyle(fontWeight: FontWeight.bold)),
-                    );
-                    }).toList(),
-                    onChanged: (value) {
-                    setState(() {
-                    selectedTable = value!;
-                    });
-                    },
-                  )
-        : Text(selectedTable ?? "Bàn 1", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      value: selectedTable,
+                      items: tables
+                          .where((table) => table.status)
+                          .map((table) => DropdownMenuItem(
+                        value: table.name,
+                        child: Text(table.name, style: TextStyle(fontWeight: FontWeight.bold)),
+                      ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedTable = value!;
+                        });
+                      },
+                    )
+                        : Text(selectedTable ?? tables.first.name, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
     Row(
                         children: [
                           // Show "Khóa" button if the role is "Nhân viên phục vụ"
@@ -472,16 +475,28 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> fetchTableList() async {
     try {
       final uri = Uri.parse("http://localhost:3003/api/table");
-
       final response = await http.get(uri);
       if (response.statusCode == 200) {
         List<dynamic> data = json.decode(response.body);
+        final loadedTables = data.map((item) => TableList.fromJson(item)).toList();
+
+        // ⚠️ Chỉ chọn table đã mở (status == true) nếu có
+        final openTables = loadedTables.where((t) => t.status).toList();
+
         setState(() {
-          tables = data.map((item) => TableList.fromJson(item)).toList();
-          selectedTable = widget.table ?? (tables.isNotEmpty ? tables.first.name : '');
+          tables = loadedTables;
+
+          // Nếu widget.table không hợp lệ thì dùng bàn mở đầu tiên
+          if (widget.table != null && openTables.any((t) => t.name == widget.table)) {
+            selectedTable = widget.table!;
+          } else if (openTables.isNotEmpty) {
+            selectedTable = openTables.first.name;
+          } else {
+            selectedTable = null;
+          }
         });
       } else {
-        print("Lỗi khi lấy danh sách món ăn: ${response.statusCode}");
+        print("Lỗi khi lấy danh sách bàn: ${response.statusCode}");
       }
     } catch (e) {
       print("Lỗi kết nối đến server: $e");

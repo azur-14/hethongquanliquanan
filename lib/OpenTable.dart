@@ -96,7 +96,7 @@ class _OpenTableScreenState extends State<OpenTableScreen> {
 
   Future<void> _openTable(int index) async {
     final table = tables[index];
-    final uri = Uri.parse("http://localhost:3003/api/table/${table.id}");
+    final uri = Uri.parse("http://localhost:3003/api/table/${table.tableId}");
 
     try {
       final response = await http.patch(

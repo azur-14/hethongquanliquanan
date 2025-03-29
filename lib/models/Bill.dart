@@ -1,5 +1,6 @@
 class Bill {
   final String billId;
+  final String tableId;
   final String table;
   final String status;
   final double total;
@@ -7,6 +8,7 @@ class Bill {
 
   Bill({
     required this.billId,
+    required this.tableId,
     required this.table,
     required this.status,
     required this.total,
@@ -16,6 +18,7 @@ class Bill {
   factory Bill.fromJson(Map<String, dynamic> json) {
     return Bill(
       billId: json['orderId'] ?? '',
+      tableId: json['_id'] ?? '',
       table: 'Bàn ${json['tableId'].toString()}',
       status: json['status'] ?? 'pending',
       total: (json['total'] as num).toDouble(),
