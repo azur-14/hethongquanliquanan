@@ -38,6 +38,7 @@ class _OrderPageState extends State<OrderPage> {
 
   @override
   Widget build(BuildContext context) {
+    final allReady = orderItems.every((item) => item.status); // true nếu tất cả là "Lên món"
     double subtotal = orderItems.fold(
         0, (sum, item) => sum + (item.price));
     double tax = 5.00;
@@ -119,23 +120,26 @@ class _OrderPageState extends State<OrderPage> {
                   ),
 
                   // 🔸 Xuất hóa đơn
-                  if (widget.role == "Nhân viên phục vụ" ||
-                      widget.role == "Quản lý")
+                  if ((widget.role == "Nhân viên phục vụ" || widget.role == "Quản lý") && allReady)
                     Align(
                       alignment: Alignment.centerRight,
                       child: ElevatedButton.icon(
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => BillScreen(billId: "#HD001", role: widget.role,)),
+                            MaterialPageRoute(
+                              builder: (_) => BillScreen(
+                                billId: selectedTable!,
+                                role: widget.role,
+                              ),
+                            ),
                           );
                         },
                         icon: Icon(Icons.receipt_long),
                         label: Text("Xuất hóa đơn"),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.deepPurple,
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
+                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         ),
                       ),
                     ),
@@ -151,7 +155,10 @@ class _OrderPageState extends State<OrderPage> {
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,
-                borderRadius: BorderRadius.only(topLeft: Radius.circular(20), bottomLeft: Radius.circular(20)),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  bottomLeft: Radius.circular(20),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,7 +255,9 @@ class _OrderPageState extends State<OrderPage> {
       final response = await http.get(uri);
       if (response.statusCode == 200) {
         List<dynamic> data = json.decode(response.body);
-        final loadItems = data.map((item) => OrderItems.fromJson(item)).toList();
+        final loadItems = data.map((item) {
+          return OrderItems.fromJson(item);
+        }).toList();
         setState(() {
           orderItems = loadItems;
         });

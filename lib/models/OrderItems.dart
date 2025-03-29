@@ -18,14 +18,17 @@ class OrderItems {
   });
 
   factory OrderItems.fromJson(Map<String, dynamic> json) {
+    final foodData = json['foodId'];
+
     return OrderItems(
       id: json['_id'] ?? '',
-      foodId: json['foodId'] is String ? json['foodId'] : json['foodId']['_id'] ?? '',
-      name: json['name'] ?? '',
-      image: json['image'] ?? 'assets/food.jpg',
-      price: (json['price'] as num).toDouble(),
-      quantity: (json['quantity'] as num).toInt(),
+      foodId: foodData is Map ? (foodData['_id'] ?? '') : (foodData ?? ''),
+      name: json['name'] ?? (foodData is Map ? foodData['name'] ?? '' : ''),
+      image: json['image'] ?? (foodData is Map ? foodData['image'] ?? 'assets/food.jpg' : 'assets/food.jpg'),
+      price: (json['price'] ?? 0).toDouble(),
+      quantity: (json['quantity'] ?? 0).toInt(),
       status: json['status'] ?? false,
     );
   }
+
 }

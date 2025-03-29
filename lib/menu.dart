@@ -42,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     currentRole = widget.role;
     fetchFoodItems();
+    fetchTableList();
   }
 
   void _handleLockUnlock() {
@@ -67,8 +68,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ElevatedButton(
                 child: Text("Xác nhận"),
-                onPressed: () {
-                  if (inputCode == "1234") {
+                onPressed: () async {
+                  final secret = await fetchSecretCode(); // 👈 await lấy mã từ API
+                  if (inputCode == secret) {
                     setState(() {
                       isLocked = true;
                       currentRole = "Khách hàng";
@@ -112,8 +114,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ElevatedButton(
                 child: Text("Xác nhận"),
-                onPressed: () {
-                  if (inputCode == "1234") { // Correct code to unlock
+                onPressed: () async {
+                  final secret = await fetchSecretCode(); // 👈 await lấy mã từ API
+                  if (inputCode == secret) { // Correct code to unlock
                     setState(() {
                       isLocked = false;
                       currentRole = "Nhân viên phục vụ"; // Switch back to "Nhân viên phục vụ"
@@ -178,25 +181,25 @@ class _HomeScreenState extends State<HomeScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      (currentRole == "Nhân viên phục vụ" || currentRole == "Quản lý")
-                          ? DropdownButton<String>(
-                        value: selectedTable,
-                        items: tables
-                          .where((table) => table.status) // 👉 chỉ lấy những bàn đã mở
-                          .map((table) {
-                            return DropdownMenuItem(
-                              value: table.name,
-                              child: Text(table.name , style: TextStyle(fontWeight: FontWeight.bold)),
-                            );
-                          }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedTable = value!;
-                          });
-                        },
-                      )
-                          : Text(selectedTable ?? "Bàn 1", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      Row(
+                    (currentRole == "Nhân viên phục vụ" || currentRole == "Quản lý")
+                    ? DropdownButton<String>(
+                    value: selectedTable,
+                    items: tables
+                        .where((table) => table.status) // 👉 chỉ lấy những bàn đã mở
+                        .map((table) {
+                    return DropdownMenuItem(
+                    value: table.name,
+                    child: Text(table.name , style: TextStyle(fontWeight: FontWeight.bold)),
+                    );
+                    }).toList(),
+                    onChanged: (value) {
+                    setState(() {
+                    selectedTable = value!;
+                    });
+                    },
+                  )
+        : Text(selectedTable ?? "Bàn 1", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+    Row(
                         children: [
                           // Show "Khóa" button if the role is "Nhân viên phục vụ"
                           if (currentRole == "Nhân viên phục vụ")
@@ -303,6 +306,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           name: food.name,
                           price: "\$${food.price.toStringAsFixed(2)}",
                           image: food.image ?? 'assets/food.jpg',
+                          status: food.status,
                           quantity: quantity,
                           onQuantityChanged: (newQuantity) =>
                               _updateCart(food.name, food.price, food.image ?? 'assets/food.jpg', newQuantity, food.id),
@@ -483,4 +487,23 @@ class _HomeScreenState extends State<HomeScreen> {
       print("Lỗi kết nối đến server: $e");
     }
   }
+
+  Future<String?> fetchSecretCode() async {
+    try {
+      final uri = Uri.parse("http://localhost:3002/api/codes"); // 🔁 URL API của bạn
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['secretCode']; // 🔑 Trả về giá trị secretCode
+      } else {
+        print("❌ Lỗi server: ${response.statusCode}");
+        return null;
+      }
+    } catch (e) {
+      print("❌ Lỗi kết nối: $e");
+      return null;
+    }
+  }
+
 }

@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'Sidebar.dart';
+import 'models/Bill.dart';
+import 'package:intl/intl.dart';
+
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class BillScreen extends StatefulWidget {
   final String billId;
@@ -12,49 +17,31 @@ class BillScreen extends StatefulWidget {
 }
 
 class _BillScreenState extends State<BillScreen> {
-  List<Map<String, dynamic>> allBills = [
-    {
-      'billId': '#HD001',
-      'table': 'Bàn 001',
-      'status': 'pending',
-      'items': [
-        {'name': 'Avocado and Egg Toast', 'qty': 2, 'price': 10.80, 'image': 'assets/food.jpg'},
-        {'name': 'Curry Salmon', 'qty': 2, 'price': 9.60, 'image': 'assets/food.jpg'},
-        {'name': 'Yogurt and Fruits', 'qty': 1, 'price': 6.00, 'image': 'assets/food.jpg'},
-      ]
-    },
-    {
-      'billId': '#HD002',
-      'table': 'Bàn 002',
-      'status': 'completed',
-      'items': [
-        {'name': 'Mac and Cheese', 'qty': 1, 'price': 12.00, 'image': 'assets/food.jpg'},
-        {'name': 'Orange Juice', 'qty': 2, 'price': 4.50, 'image': 'assets/food.jpg'},
-      ]
-    },
-  ];
+  Bill? bill;
 
-  Map<String, dynamic>? bill;
+  @override
 
   @override
   void initState() {
     super.initState();
-    bill = allBills.firstWhere((b) => b['billId'] == widget.billId, orElse: () => {});
+    loadBill("pending");
+  }
+
+  Future<void> setStateAndLoad(String orderId) async {
+    await setStateOrder(orderId);
+    await updateTableStatus(widget.billId);
+    await loadBill("completed");
   }
 
   @override
   Widget build(BuildContext context) {
-    if (bill == null || bill!.isEmpty) {
+    if (bill == null) {
       return Scaffold(
-        body: Center(child: Text("❌ Không tìm thấy hóa đơn ${widget.billId}")),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    final String tableName = bill!['table'];
-    final List<Map<String, dynamic>> orderedItems = List.from(bill!['items']);
-    final String status = bill!['status'];
-
-    double subtotal = orderedItems.fold(0, (sum, item) => sum + (item['qty'] * item['price']));
+    double subtotal = bill!.total;
     double tax = 5.0;
 
     return Scaffold(
@@ -64,21 +51,21 @@ class _BillScreenState extends State<BillScreen> {
             selectedItem: "Hóa đơn",
             onSelectItem: (_) {},
             role: widget.role, // Use role from the previous screen
-            table: tableName,
+            table: bill!.table,
           ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(30),
               child: BillContent(
                 billId: widget.billId,
-                tableName: tableName,
-                orderedItems: orderedItems,
+                tableName: "Hóa đơn",
+                orderedItems: bill!.items,
                 subtotal: subtotal,
                 tax: tax,
-                status: status,
+                status: bill!.status,
                 onComplete: () {
                   setState(() {
-                    bill!['status'] = 'completed';
+                    setStateAndLoad(bill!.billId);
                   });
                 },
               ),
@@ -88,13 +75,81 @@ class _BillScreenState extends State<BillScreen> {
       ),
     );
   }
+
+  Future<void> loadBill(String status) async {
+    final tableId = widget.billId.replaceAll(RegExp(r'\D'), ''); // "Bàn 001" → "001"
+    final result = await fetchBillByTableId(tableId, status);
+    if (mounted) {
+      setState(() {
+        bill = result;
+      });
+    }
+  }
+
+  Future<Bill?> fetchBillByTableId(String tableId, String status) async {
+    try {
+      final uri = Uri.parse("http://localhost:3001/api/orders/bill/$tableId?status=$status");
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return Bill.fromJson(data);
+      } else if (response.statusCode == 404) {
+        print("Không tìm thấy hóa đơn cho bàn $tableId");
+        return null;
+      } else {
+        print("❌ Lỗi server: ${response.statusCode}");
+        return null;
+      }
+    } catch (e) {
+      print("❌ Lỗi kết nối đến API: $e");
+      return null;
+    }
+  }
+
+  Future<void> setStateOrder(String orderId) async {
+    try {
+      final uri = Uri.parse('http://localhost:3001/api/orders/$orderId/status');
+      final response = await http.put(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'status': "completed"}),
+      );
+      if (response.statusCode != 200) {
+        print('❌ Cập nhật trạng thái thất bại');
+      }
+    } catch (e) {
+      print('❌ Lỗi kết nối khi cập nhật trạng thái: $e');
+    }
+  }
+
+  Future<void> updateTableStatus(String tableName) async {
+    final tableId = tableName.replaceAll(RegExp(r'\D'), ''); // "Bàn 001" → "001"
+    try {
+      final uri = Uri.parse('http://localhost:3003/api/table/$tableId');
+      final response = await http.patch(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'status': false}),
+      );
+
+      if (response.statusCode == 200) {
+        print('✅ Bàn đã được chuyển về trạng thái chưa sử dụng');
+      } else {
+        print('❌ Không thể cập nhật trạng thái bàn: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Lỗi kết nối khi cập nhật trạng thái bàn: $e');
+    }
+  }
+
 }
 
 
 class BillContent extends StatefulWidget {
   final String billId;
   final String tableName;
-  final List<Map<String, dynamic>> orderedItems;
+  final List<BillItem> orderedItems;
   final double subtotal;
   final double tax;
   final String status;
@@ -146,10 +201,18 @@ class _BillContentState extends State<BillContent> {
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
             children: [
-              Image.asset(item['image'], width: 40, height: 40),
+              Image.network(
+                item.image ?? '',
+                width: 80,
+                height: 80,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Image.asset('assets/food.jpg', width: 80, height: 80, fit: BoxFit.cover);
+                },
+              ),
               SizedBox(width: 15),
-              Expanded(child: Text(item['name'], style: TextStyle(fontSize: 16))),
-              Text('${item['qty']} × \$${item['price'].toStringAsFixed(2)}'),
+              Expanded(child: Text(item.name, style: TextStyle(fontSize: 16))),
+              Text('${item.qty} × \$${item.price.toStringAsFixed(2)}'),
             ],
           ),
         )),

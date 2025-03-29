@@ -4,6 +4,7 @@ class FoodItemCard extends StatelessWidget {
   final String name;
   final String price;
   final String image;
+  final String status;
   final int quantity;
   final Function(int) onQuantityChanged;
 
@@ -11,17 +12,20 @@ class FoodItemCard extends StatelessWidget {
     required this.name,
     required this.price,
     required this.image,
+    required this.status,
     required this.quantity,
     required this.onQuantityChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool isInactive = status == 'inactive';
+
     return Container(
       padding: EdgeInsets.all(8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
-        color: Colors.white,
+        color: isInactive ? Colors.grey.shade300 : Colors.white, // 👉 Màu xám nếu inactive
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)],
       ),
       child: Row(
@@ -52,14 +56,22 @@ class FoodItemCard extends StatelessWidget {
               children: [
                 Text(
                   name,
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                  maxLines: 2, // 👈 Cho phép xuống dòng
-                  overflow: TextOverflow.ellipsis, // 👈 Có thể giữ để tránh tràn layout
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isInactive ? Colors.grey.shade600 : Colors.black, // 👉 text xám nếu inactive
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: 4),
                 Text(
                   price,
-                  style: TextStyle(color: Color(0xFFFF7B2C), fontSize: 14, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: isInactive ? Colors.grey : Color(0xFFFF7B2C),
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 SizedBox(height: 6),
                 Row(
@@ -70,9 +82,9 @@ class FoodItemCard extends StatelessWidget {
                       padding: EdgeInsets.zero,
                       constraints: BoxConstraints(),
                       icon: Icon(Icons.remove_circle, color: Colors.grey),
-                      onPressed: () {
-                        if (quantity > 0) onQuantityChanged(quantity - 1);
-                      },
+                      onPressed: isInactive || quantity <= 0
+                          ? null
+                          : () => onQuantityChanged(quantity - 1), // 👉 disabled if inactive
                     ),
                     SizedBox(width: 10),
                     Text(quantity.toString(), style: TextStyle(fontSize: 16)),
@@ -81,8 +93,10 @@ class FoodItemCard extends StatelessWidget {
                       iconSize: 20,
                       padding: EdgeInsets.zero,
                       constraints: BoxConstraints(),
-                      icon: Icon(Icons.add_circle, color: Color(0xFFFF7B2C)),
-                      onPressed: () => onQuantityChanged(quantity + 1),
+                      icon: Icon(Icons.add_circle, color: isInactive ? Colors.grey : Color(0xFFFF7B2C)),
+                      onPressed: isInactive
+                          ? null
+                          : () => onQuantityChanged(quantity + 1), // 👉 disabled if inactive
                     ),
                   ],
                 ),
