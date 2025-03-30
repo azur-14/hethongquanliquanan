@@ -32,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String selectedFilter = "Tất cả";
   String selectedSidebarItem = "Món ăn";
 
-  List<String> filters = ["Tất cả", "Phổ biến nhất", "Món chay", "Đồ uống"];
+  List<String> filters = [];
 
   bool isLocked = false;
   String currentRole = "";
@@ -47,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> fetchFoodAndTable() async {
     await fetchFoodItems();
     await fetchTableList();
+    await fetchCategories();
   }
 
   void _handleLockUnlock() {
@@ -415,7 +416,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> fetchFoodItems() async {
     try {
-      final uri = Uri.parse("http://localhost:3001/api/foods?search=$searchQuery&categoryName=${selectedFilter == 'Tất cả' ? '' : selectedFilter}");
+      final selectedCategory = selectedFilter == 'Tất cả' ? '' : selectedFilter;
+      final uri = Uri.parse("http://localhost:3001/api/foods?search=$searchQuery&categoryName=$selectedCategory");
 
       final response = await http.get(uri);
 
@@ -518,6 +520,24 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       print("❌ Lỗi kết nối: $e");
       return null;
+    }
+  }
+
+  Future<void> fetchCategories() async {
+    try {
+      final uri = Uri.parse("http://localhost:3001/api/categories");
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          filters = ['Tất cả', ...data.map((item) => item['name'].toString()).toList()];
+        });
+      } else {
+        print("❌ Lỗi khi lấy category: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Lỗi kết nối khi lấy category: $e");
     }
   }
 

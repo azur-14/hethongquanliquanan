@@ -4,6 +4,9 @@ import 'bill.dart';
 import 'Sidebar.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
 
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 class BillStatisticsScreen extends StatefulWidget {
   const BillStatisticsScreen({Key? key}) : super(key: key);
 
@@ -52,73 +55,13 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
   }
 
 
-  final List<Map<String, dynamic>> allBills = [
-    {
-      'billId': '#HD001',
-      'tableId': 1,
-      'status': 'completed',
-      'note': '',
-      'total': 50.0,
-      'time': DateTime(2025, 3, 27, 8, 30),
-    },
-    {
-      'billId': '#HD002',
-      'tableId': 2,
-      'status': 'completed',
-      'note': '',
-      'total': 80.0,
-      'time': DateTime(2025, 3, 27, 14, 15),
-    },
-    {
-      'billId': '#HD003',
-      'tableId': 3,
-      'status': 'pending',
-      'note': '',
-      'total': 60.0,
-      'time': DateTime(2025, 3, 26, 11, 45),
-    },
-    {
-      'billId': '#HD004',
-      'tableId': 1,
-      'status': 'completed',
-      'note': '',
-      'total': 40.0,
-      'time': DateTime(2025, 3, 25, 19, 20),
-    },
-    {
-      'billId': '#HD005',
-      'tableId': 2,
-      'status': 'completed',
-      'note': '',
-      'total': 100.0,
-      'time': DateTime(2025, 2, 20, 9, 50),
-    },
-    {
-      'billId': '#HD006',
-      'tableId': 3,
-      'status': 'completed',
-      'note': '',
-      'total': 30.0,
-      'time': DateTime(2025, 1, 15, 15, 40),
-    },
-    {
-      'billId': '#HD007',
-      'tableId': 1,
-      'status': 'completed',
-      'note': '',
-      'total': 75.0,
-      'time': DateTime(2024, 12, 31, 10, 10),
-    },
-    {
-      'billId': '#HD008',
-      'tableId': 2,
-      'status': 'completed',
-      'note': '',
-      'total': 90.0,
-      'time': DateTime(2024, 12, 31, 17, 25),
-    },
-  ];
+  List<Map<String, dynamic>> allBills = [];
 
+  @override
+  void initState() {
+    super.initState();
+    fetchCompletedBills();
+  }
 
   void _pickDate(BuildContext context) async {
     if (selectedOption == FilterOption.month) {
@@ -291,6 +234,35 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> fetchCompletedBills() async {
+    try {
+      final uri = Uri.parse("http://localhost:3001/api/orders/completed"); // đổi nếu bạn dùng cổng khác
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        print(jsonEncode(data));
+
+        setState(() {
+          allBills = data.map((order) {
+            return {
+              'billId': '#HD${order["orderId"].toString().padLeft(3, '0')}',
+              'tableId': order["tableId"],
+              'status': order["status"],
+              'note': order["note"] ?? '',
+              'total': (order["total"] as num).toDouble(),
+              'time': DateTime.parse(order["time"]), // đảm bảo `createdTime` là chuỗi ISO
+            };
+          }).toList();
+        });
+      } else {
+        print("❌ Lỗi khi lấy hóa đơn: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Lỗi kết nối API hóa đơn: $e");
+    }
   }
 }
 
