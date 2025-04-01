@@ -138,53 +138,63 @@ router.get('/pending-with-details', async (req, res) => {
 });
   
   
-// GET: Đơn hàng theo tableId và trạng thái
+// GET: Đơn hàng theo tableId và trạng thái hoặc orderId
 router.get('/bill/:tableId', async (req, res) => {
-    try {
-      const { tableId } = req.params;
-      const { status = 'pending' } = req.query; // 🟡 Mặc định là pending nếu không truyền
-  
-      // 1. Tìm đơn hàng theo tableId và status (từ query)
-      const order = await DonHang.findOne({
+  try {
+    const { tableId } = req.params;
+    const { status = 'pending', orderId } = req.query;
+
+    let order;
+
+    if (orderId) {
+      // 🔍 Ưu tiên tìm theo orderId nếu được truyền
+      order = await DonHang.findOne({
+        tableId: parseInt(tableId),
+        orderId: orderId,
+      });
+    } else {
+      // 🔍 Ngược lại, tìm theo status
+      order = await DonHang.findOne({
         tableId: parseInt(tableId),
         status: status,
       });
-  
-      if (!order) {
-        return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
-      }
-  
-      // 2. Tìm tất cả chi tiết đơn hàng
-      const orderDetails = await OrderDetail.find({ orderId: order.orderId });
-  
-      // 3. Lấy thông tin món ăn (name, image...)
-      const detailsWithFood = await Promise.all(
-        orderDetails.map(async (detail) => {
-          const food = await Food.findById(detail.foodId);
-          return {
-            foodId: detail.foodId,
-            name: food?.name || 'Không rõ',
-            image: food?.image || '',
-            quantity: detail.quantity,
-            price: detail.price,
-            status: detail.status,
-          };
-        })
-      );
-  
-      // 4. Trả dữ liệu
-      res.json({
-        orderId: order.orderId,
-        tableId: order.tableId,
-        status: order.status,
-        note: order.note || '',
-        total: order.total,
-        details: detailsWithFood,
-      });
-    } catch (error) {
-      console.error('🔥 Lỗi khi lấy đơn hàng theo tableId:', error);
-      res.status(500).json({ error: 'Lỗi server' });
     }
+
+    if (!order) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+
+    // 🔄 Lấy chi tiết đơn hàng
+    const orderDetails = await OrderDetail.find({ orderId: order.orderId });
+
+    // 🍽 Lấy thông tin món ăn
+    const detailsWithFood = await Promise.all(
+      orderDetails.map(async (detail) => {
+        const food = await Food.findById(detail.foodId);
+        return {
+          foodId: detail.foodId,
+          name: food?.name || 'Không rõ',
+          image: food?.image || '',
+          quantity: detail.quantity,
+          price: detail.price,
+          status: detail.status,
+        };
+      })
+    );
+
+    // 📤 Trả về đơn hàng đầy đủ
+    res.json({
+      orderId: order.orderId,
+      tableId: order.tableId,
+      status: order.status,
+      note: order.note || '',
+      total: order.total,
+      details: detailsWithFood,
+    });
+  } catch (error) {
+    console.error('🔥 Lỗi khi lấy đơn hàng theo tableId:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
 });
 
 // GET: Lấy danh sách các đơn hàng có trạng thái completed

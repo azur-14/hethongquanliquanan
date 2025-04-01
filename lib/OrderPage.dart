@@ -131,6 +131,8 @@ class _OrderPageState extends State<OrderPage> {
                               builder: (_) => BillScreen(
                                 billId: selectedTable!,
                                 role: widget.role,
+                                checkDetails: false,
+                                tableId: selectedTable!.replaceAll(RegExp(r'\D'), ''),
                               ),
                             ),
                           );

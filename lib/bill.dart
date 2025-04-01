@@ -9,8 +9,10 @@ import 'dart:convert';
 class BillScreen extends StatefulWidget {
   final String billId;
   final String role;  // Add role as a parameter
+  final bool checkDetails;
+  final String tableId;
 
-  const BillScreen({Key? key, required this.billId, required this.role}) : super(key: key);
+  const BillScreen({Key? key, required this.billId, required this.role, required this.checkDetails, required this.tableId}) : super(key: key);
 
   @override
   _BillScreenState createState() => _BillScreenState();
@@ -24,13 +26,18 @@ class _BillScreenState extends State<BillScreen> {
   @override
   void initState() {
     super.initState();
-    loadBill("pending");
+    if (widget.checkDetails) {
+      print("order ok");
+      loadBill(orderId: widget.billId);
+    } else {
+      loadBill(status: "pending");
+    }
   }
 
   Future<void> setStateAndLoad(String orderId) async {
     await setStateOrder(orderId);
     await updateTableStatus(widget.billId);
-    await loadBill("completed");
+    await loadBill(status: "completed");
   }
 
   @override
@@ -63,10 +70,8 @@ class _BillScreenState extends State<BillScreen> {
                 subtotal: subtotal,
                 tax: tax,
                 status: bill!.status,
-                onComplete: () {
-                  setState(() {
-                    setStateAndLoad(bill!.billId);
-                  });
+                onComplete: () async {
+                  await setStateAndLoad(bill!.billId);
                 },
               ),
             ),
@@ -76,9 +81,16 @@ class _BillScreenState extends State<BillScreen> {
     );
   }
 
-  Future<void> loadBill(String status) async {
-    final tableId = widget.billId.replaceAll(RegExp(r'\D'), ''); // "Bàn 001" → "001"
-    final result = await fetchBillByTableId(tableId, status);
+  Future<void> loadBill({String? status, String? orderId}) async {
+    final tableId = widget.tableId;
+
+    final result = await fetchBillByTableId(
+      tableId: tableId,
+      status: status,
+      orderId: orderId,
+    );
+
+    print("ok");
     if (mounted) {
       setState(() {
         bill = result;
@@ -86,16 +98,31 @@ class _BillScreenState extends State<BillScreen> {
     }
   }
 
-  Future<Bill?> fetchBillByTableId(String tableId, String status) async {
+  Future<Bill?> fetchBillByTableId({
+    required String tableId,
+    String? status,
+    String? orderId,
+  }) async {
     try {
-      final uri = Uri.parse("http://localhost:3001/api/orders/bill/$tableId?status=$status");
+      // ⚙️ Xây dựng query string động
+      String queryParams = '';
+      if (orderId != null) {
+        queryParams = '?orderId=$orderId';
+      } else if (status != null) {
+        queryParams = '?status=$status';
+      }
+
+      print(tableId);
+      print(queryParams);
+
+      final uri = Uri.parse("http://localhost:3001/api/orders/bill/$tableId$queryParams");
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return Bill.fromJson(data);
       } else if (response.statusCode == 404) {
-        print("Không tìm thấy hóa đơn cho bàn $tableId");
+        print("⚠️ Không tìm thấy hóa đơn cho bàn $tableId");
         return null;
       } else {
         print("❌ Lỗi server: ${response.statusCode}");
@@ -106,6 +133,7 @@ class _BillScreenState extends State<BillScreen> {
       return null;
     }
   }
+
 
   Future<void> setStateOrder(String orderId) async {
     try {

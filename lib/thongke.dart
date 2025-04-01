@@ -229,6 +229,8 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
                                   builder: (context) => BillScreen(
                                     billId: bill['billId'],
                                     role: 'Quản lý',
+                                    checkDetails: true,
+                                    tableId: bill['tableId'].toString(),
                                   ),
                                 ),
                               ),
@@ -258,7 +260,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
         setState(() {
           allBills = data.map((order) {
             return {
-              'billId': '#HD${order["orderId"].toString().padLeft(3, '0')}',
+              'billId': '${order["orderId"].toString().padLeft(3, '0')}',
               'tableId': order["tableId"],
               'status': order["status"],
               'note': order["note"] ?? '',
