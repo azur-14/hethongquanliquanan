@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'bill.dart';
 import 'Sidebar.dart';
+import 'models/Shift.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
 
 import 'package:http/http.dart' as http;
@@ -18,6 +19,7 @@ enum FilterOption { shift, day, month, quarter, year }
 
 class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
   FilterOption selectedOption = FilterOption.day;
+  List<Shift> allShifts = [];
   DateTime selectedDate = DateTime.now();
   int selectedShift = 1;
   // Thêm đoạn này vào State:
@@ -61,6 +63,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
   void initState() {
     super.initState();
     fetchCompletedBills();
+    fetchShifts();
   }
 
   void _pickDate(BuildContext context) async {
@@ -206,25 +209,33 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
                       separatorBuilder: (_, __) => SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final bill = filteredBills[index];
-                        final shift = bill['time'].hour < 12 ? "Ca 1" : "Ca 2";
-                        return ListTile(
-                          tileColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          leading: Icon(Icons.receipt_long, color: Colors.orange),
-                          title: Text("${bill['billId']} - Bàn ${bill['tableId']}"),
-                          subtitle: Text("${DateFormat('dd/MM/yyyy - HH:mm').format(bill['time'])} ($shift)"),
-                          trailing: Text("\$${bill['total'].toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold)),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => BillScreen(
-                                billId: '#HD001', // or dynamic value
-                                role: 'Quản lý', // Pass role here
+                        final billTimeVN = (bill["time"] as DateTime);
+                        final billTimeVNFormatted = DateFormat('dd/MM/yyyy - HH:mm').format(billTimeVN);
+
+                        return FutureBuilder<String>(
+                          future: fetchShiftFromApi(billTimeVN),
+                          builder: (context, snapshot) {
+                            final shiftName = snapshot.data ?? '...';
+                            return ListTile(
+                              tileColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              leading: Icon(Icons.receipt_long, color: Colors.orange),
+                              title: Text("${bill['billId']} - Bàn ${bill['tableId']}"),
+                              subtitle: Text("$billTimeVNFormatted ($shiftName)"),
+                              trailing: Text("\$${bill['total'].toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold)),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => BillScreen(
+                                    billId: bill['billId'],
+                                    role: 'Quản lý',
+                                  ),
+                                ),
                               ),
-                            ),
-                          )
+                            );
+                          },
                         );
-                      },
+                      }
                     ),
                   ),
                 ],
@@ -243,7 +254,6 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        print(jsonEncode(data));
 
         setState(() {
           allBills = data.map((order) {
@@ -262,6 +272,40 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
       }
     } catch (e) {
       print("❌ Lỗi kết nối API hóa đơn: $e");
+    }
+  }
+
+  Future<void> fetchShifts() async {
+    try {
+      final uri = Uri.parse("http://localhost:3002/api/shifts");
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          allShifts = data.map((e) => Shift.fromJson(e)).toList();
+        });
+      } else {
+        print("❌ Lỗi khi lấy ca làm việc: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Lỗi kết nối API shift: $e");
+    }
+  }
+
+  Future<String> fetchShiftFromApi(DateTime billTimeVN) async {
+    final formattedTime = billTimeVN.toUtc().toIso8601String(); // Gửi UTC lên server
+    print(formattedTime);
+
+    final uri = Uri.parse('http://localhost:3002/api/shifts/by-time?time=$formattedTime');
+    final response = await http.get(uri);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['shiftName'] ?? "Không rõ";
+    } else {
+      print("❌ Không thể lấy ca từ API: ${response.body}");
+      return "Không rõ";
     }
   }
 }
