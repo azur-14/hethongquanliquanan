@@ -6,6 +6,7 @@ import 'FilterButton.dart';
 import 'models/Food.dart';
 import 'models/TableList.dart';
 import 'package:intl/intl.dart';
+import 'theme/color.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -51,342 +52,343 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleLockUnlock() {
-    if (currentRole == "Nhân viên phục vụ") {
-      // If role is "Nhân viên phục vụ", lock and switch to "Khách hàng"
-      showDialog(
-        context: context,
-        builder: (context) {
-          String inputCode = '';
-          return AlertDialog(
-            title: Text("Nhập mã khóa"),
-            content: TextField(
-              obscureText: true,
-              decoration: InputDecoration(hintText: "Nhập mã bí mật"),
-              onChanged: (value) {
-                inputCode = value;
+    showDialog(
+      context: context,
+      builder: (context) {
+        String inputCode = '';
+        return AlertDialog(
+          title: Text(currentRole == "Nhân viên phục vụ" ? "Nhập mã khóa" : "Nhập mã mở khóa"),
+          content: TextField(
+            obscureText: true,
+            decoration: InputDecoration(hintText: "Nhập mã bí mật"),
+            onChanged: (value) => inputCode = value,
+          ),
+          actions: [
+            TextButton(
+              child: Text("Hủy"),
+              onPressed: () => Navigator.pop(context),
+            ),
+            ElevatedButton(
+              child: Text("Xác nhận"),
+              onPressed: () async {
+                final secret = await fetchSecretCode();
+                if (inputCode == secret) {
+                  setState(() {
+                    isLocked = !isLocked;
+                    currentRole = isLocked ? "Khách hàng" : "Nhân viên phục vụ";
+                  });
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(isLocked
+                        ? "Đã chuyển sang chế độ Khách hàng."
+                        : "Đã chuyển sang chế độ Nhân viên phục vụ."),
+                    backgroundColor: Colors.green,
+                  ));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text("Mã không đúng."),
+                    backgroundColor: Colors.red,
+                  ));
+                }
               },
             ),
-            actions: [
-              TextButton(
-                child: Text("Hủy"),
-                onPressed: () => Navigator.pop(context),
-              ),
-              ElevatedButton(
-                child: Text("Xác nhận"),
-                onPressed: () async {
-                  final secret = await fetchSecretCode(); // 👈 await lấy mã từ API
-                  if (inputCode == secret) {
-                    setState(() {
-                      isLocked = true;
-                      currentRole = "Khách hàng";
-                    });
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text("Đã chuyển sang chế độ Khách hàng."),
-                      backgroundColor: Colors.green,
-                    ));
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text("Mã không đúng."),
-                      backgroundColor: Colors.red,
-                    ));
-                  }
-                },
-              ),
-            ],
-          );
-        },
-      );
-    } else {
-      // If role is "Khách hàng", unlock and switch back to "Nhân viên phục vụ"
-      showDialog(
-        context: context,
-        builder: (context) {
-          String inputCode = '';
-          return AlertDialog(
-            title: Text("Nhập mã mở khóa"),
-            content: TextField(
-              obscureText: true,
-              decoration: InputDecoration(hintText: "Nhập mã bí mật"),
-              onChanged: (value) {
-                inputCode = value;
-              },
-            ),
-            actions: [
-              TextButton(
-                child: Text("Hủy"),
-                onPressed: () => Navigator.pop(context),
-              ),
-              ElevatedButton(
-                child: Text("Xác nhận"),
-                onPressed: () async {
-                  final secret = await fetchSecretCode(); // 👈 await lấy mã từ API
-                  if (inputCode == secret) { // Correct code to unlock
-                    setState(() {
-                      isLocked = false;
-                      currentRole = "Nhân viên phục vụ"; // Switch back to "Nhân viên phục vụ"
-                    });
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text("Đã chuyển sang chế độ Nhân viên phục vụ."),
-                      backgroundColor: Colors.green,
-                    ));
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text("Mã không đúng."),
-                      backgroundColor: Colors.red,
-                    ));
-                  }
-                },
-              ),
-            ],
-          );
-        },
-      );
-    }
+          ],
+        );
+      },
+    );
   }
+
   double get subtotal => cart.fold(0.0, (sum, item) => sum + item["price"] * item["quantity"]);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      drawer: MediaQuery.of(context).size.width < 800
-          ? Sidebar(
-        selectedItem: selectedSidebarItem,
-        onSelectItem: (item) {
-          setState(() {
-            selectedSidebarItem = item;
-          });
-        },
-        role: currentRole,
-        table: selectedTable,
-      )
-          : null,
-      body: Row(
-        children: [
-          if (MediaQuery.of(context).size.width >= 800)
-            Sidebar(
-              selectedItem: selectedSidebarItem,
-              onSelectItem: (item) {
-                setState(() {
-                  selectedSidebarItem = item;
-                });
-              },
-              role: currentRole,
-              table: selectedTable,
-            ),
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 🔹 Header: Bàn + Khóa + Mở bàn + Tìm
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                    (currentRole == "Nhân viên phục vụ" || currentRole == "Quản lý")
-                    ? DropdownButton<String>(
-                      value: selectedTable,
-                      items: tables
-                          .where((table) => table.status)
-                          .map((table) => DropdownMenuItem(
-                        value: table.name,
-                        child: Text(table.name, style: TextStyle(fontWeight: FontWeight.bold)),
-                      ))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedTable = value!;
-                        });
-                      },
-                    )
-                        : Text(selectedTable ?? tables.first.name, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-    Row(
-                        children: [
-                          // Show "Khóa" button if the role is "Nhân viên phục vụ"
-                          if (currentRole == "Nhân viên phục vụ")
-                            ElevatedButton.icon(
-                              onPressed: _handleLockUnlock,
-                              icon: Icon(Icons.lock),
-                              label: Text("Khóa"),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.deepOrange,
-                              ),
-                            ),
-                          // Show "Mở khóa" button if the role is "Khách hàng"
-                          if (currentRole == "Khách hàng")
-                            ElevatedButton.icon(
-                              onPressed: _handleLockUnlock,
-                              icon: Icon(Icons.lock_open),
-                              label: Text("Mở khóa"),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey,
-                              ),
-                            ),
-                          SizedBox(width: 12),
-                          if (currentRole == "Nhân viên phục vụ" || currentRole == "Quản lý")
-                            ElevatedButton.icon(
-                              onPressed: () async {
-                                final openedTables = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => OpenTableScreen()),
-                                );
-
-                                if (openedTables != null && openedTables is List<TableList>) {
-                                  setState(() {
-                                    tables = openedTables;
-                                    selectedTable = tables.first.name;
-                                  });
-                                }
-                              },
-                              icon: Icon(Icons.event_seat),
-                              label: Text("Mở bàn"),
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                            ),
-                        ],
-                      ),
-                      Container(
-                        width: 300,
-                        padding: EdgeInsets.symmetric(horizontal: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: TextField(
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            hintText: "Tìm món ăn...",
-                            prefixIcon: Icon(Icons.search),
-                          ),
-                          onChanged: (value) {
-                            setState(() {
-                              searchQuery = value;
-                            });
-                            fetchFoodItems();
-                          },
-                        ),
-                      ),
-                    ],
+    return WillPopScope(
+      onWillPop: () async {
+        if (currentRole == "Khách hàng") {
+          String inputCode = '';
+          final shouldExit = await showDialog<bool>(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: Text("Nhập mã để thoát"),
+                content: TextField(
+                  obscureText: true,
+                  decoration: InputDecoration(hintText: "Nhập mã bí mật"),
+                  onChanged: (value) => inputCode = value,
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text("Hủy"),
                   ),
-                  SizedBox(height: 20),
-                  // 🔹 Bộ lọc
-                  Row(
-                    children: filters.map((filter) {
-                      return Padding(
-                        padding: EdgeInsets.only(right: 10),
-                        child: FilterButton(
-                          title: filter,
-                          isSelected: selectedFilter == filter,
-                          onTap: () {
-                            setState(() {
-                              selectedFilter = filter;
-                            });
-                            fetchFoodItems();
-                          },
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  SizedBox(height: 20),
-                  // 🔹 Danh sách món ăn
-                  Expanded(
-                    child: GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2, // 👉 2 món mỗi hàng
-                        crossAxisSpacing: 20,
-                        mainAxisSpacing: 20,
-                        childAspectRatio: 3.2, // 👉 Giãn rộng để tên hiển thị thoải mái
-                      ),
-                      itemCount: foodItems.length,
-                      itemBuilder: (context, index) {
-                        final food = foodItems[index];
-                        final quantity = cart.firstWhere(
-                              (c) => c["name"] == food.name,
-                          orElse: () => {"quantity": 0},
-                        )["quantity"];
-                        return FoodItemCard(
-                          name: food.name,
-                          price: "\$${food.price.toStringAsFixed(2)}",
-                          image: food.image ?? 'assets/food.jpg',
-                          status: food.status,
-                          quantity: quantity,
-                          onQuantityChanged: (newQuantity) =>
-                              _updateCart(food.name, food.price, food.image ?? 'assets/food.jpg', newQuantity, food.id),
-                        );
-                      },
-                    ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final secret = await fetchSecretCode();
+                      if (inputCode == secret) {
+                        Navigator.pop(context, true);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text("Mã không đúng."),
+                          backgroundColor: Colors.red,
+                        ));
+                      }
+                    },
+                    child: Text("Xác nhận"),
                   ),
                 ],
+              );
+            },
+          );
+          return shouldExit ?? false;
+        }
+        return true;
+      },
+      child: Scaffold(
+        drawer: MediaQuery.of(context).size.width < 800
+            ? Sidebar(
+          selectedItem: selectedSidebarItem,
+          onSelectItem: (item) => setState(() => selectedSidebarItem = item),
+          role: currentRole,
+          table: selectedTable,
+        )
+            : null,
+        body: Row(
+          children: [
+            if (MediaQuery.of(context).size.width >= 800)
+              Sidebar(
+                selectedItem: selectedSidebarItem,
+                onSelectItem: (item) => setState(() => selectedSidebarItem = item),
+                role: currentRole,
+                table: selectedTable,
               ),
-            ),
-          ),
-          // 🔹 Sidebar giỏ hàng
-          if (MediaQuery.of(context).size.width > 1100)
-            Container(
-              width: 320,
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.grey.shade100, border: Border(left: BorderSide(color: Colors.grey))),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Giỏ hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  Divider(),
-                  Expanded(
-                    child: cart.isEmpty
-                        ? Center(child: Text("Chưa có món nào được thêm."))
-                        : ListView(
-                      children: cart.map((item) {
-                        return ListTile(
-                          leading: Image.network(
-                            item["image"] ?? '',
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Image.asset('assets/food.jpg', width: 80, height: 80, fit: BoxFit.cover);
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        (currentRole == "Nhân viên phục vụ" || currentRole == "Quản lý")
+                            ? DropdownButton<String>(
+                          value: selectedTable,
+                          items: tables
+                              .where((table) => table.status)
+                              .map((table) => DropdownMenuItem(
+                            value: table.name,
+                            child: Text(table.name, style: TextStyle(fontWeight: FontWeight.bold)),
+                          ))
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedTable = value!;
+                            });
+                          },
+                        )
+                            : Text(selectedTable ?? tables.first.name,
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Row(
+                          children: [
+                            if (currentRole == "Nhân viên phục vụ")
+                              ElevatedButton.icon(
+                                onPressed: _handleLockUnlock,
+                                icon: Icon(Icons.lock),
+                                label: Text("Khóa"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.deepOrange,
+                                ),
+                              ),
+                            if (currentRole == "Khách hàng")
+                              ElevatedButton.icon(
+                                onPressed: _handleLockUnlock,
+                                icon: Icon(Icons.lock_open),
+                                label: Text("Mở khóa"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey,
+                                ),
+                              ),
+                            SizedBox(width: 12),
+                            if (currentRole == "Nhân viên phục vụ" || currentRole == "Quản lý")
+                              ElevatedButton.icon(
+                                onPressed: () async {
+                                  final openedTables = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => OpenTableScreen()),
+                                  );
+                                  if (openedTables != null && openedTables is List<TableList>) {
+                                    setState(() {
+                                      tables = openedTables;
+                                      selectedTable = tables.first.name;
+                                    });
+                                  }
+                                },
+                                icon: Icon(Icons.event_seat),
+                                label: Text("Mở bàn"),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                              ),
+                          ],
+                        ),
+                        Container(
+                          width: 300,
+                          padding: EdgeInsets.symmetric(horizontal: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: TextField(
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              hintText: "Tìm món ăn...",
+                              prefixIcon: Icon(Icons.search),
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                searchQuery = value;
+                              });
+                              fetchFoodItems();
                             },
-                          )
-                          ,
-                          title: Text(item["name"], style: TextStyle(fontSize: 14)),
-                          subtitle: Text("x${item["quantity"]}"),
-                          trailing: Text("\$${(item["price"] * item["quantity"]).toStringAsFixed(2)}"),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      children: filters.map((filter) {
+                        return Padding(
+                          padding: EdgeInsets.only(right: 10),
+                          child: FilterButton(
+                            title: filter,
+                            isSelected: selectedFilter == filter,
+                            onTap: () {
+                              setState(() {
+                                selectedFilter = filter;
+                              });
+                              fetchFoodItems();
+                            },
+                          ),
                         );
                       }).toList(),
                     ),
-                  ),
-                  SizedBox(height: 10),
-                  TextField(
-                    maxLines: 2,
-                    decoration: InputDecoration(
-                      hintText: "Thêm ghi chú cho đơn hàng...",
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    SizedBox(height: 20),
+                    Expanded(
+                      child: GridView.builder(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 20,
+                          mainAxisSpacing: 20,
+                          childAspectRatio: 3.2,
+                        ),
+                        itemCount: foodItems.length,
+                        itemBuilder: (context, index) {
+                          final food = foodItems[index];
+                          final quantity = cart.firstWhere(
+                                (c) => c["name"] == food.name,
+                            orElse: () => {"quantity": 0},
+                          )["quantity"];
+                          return FoodItemCard(
+                            name: food.name,
+                            price: "\$${food.price.toStringAsFixed(2)}",
+                            image: food.image ?? 'assets/food.jpg',
+                            status: food.status,
+                            quantity: quantity,
+                            onQuantityChanged: (newQuantity) => _updateCart(
+                              food.name,
+                              food.price,
+                              food.image ?? 'assets/food.jpg',
+                              newQuantity,
+                              food.id,
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                    onChanged: (value) => orderNote = value,
-                  ),
-                  SizedBox(height: 10),
-                  Text("Tổng cộng: \$${subtotal.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold)),
-                  SizedBox(height: 10),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      if (cart.isEmpty) return;
-                      placeOrder();
-                      setState(() {
-                        cart.clear();
-                        orderNote = "";
-                      });
-                    },
-                    icon: Icon(Icons.check_circle),
-                    label: Text("Đặt món"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-        ],
+            if (MediaQuery.of(context).size.width > 1100)
+              Container(
+                width: 320,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  border: Border(left: BorderSide(color: AppColors.border)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Giỏ hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Divider(),
+                    Expanded(
+                      child: cart.isEmpty
+                          ? Center(child: Text("Chưa có món nào được thêm."))
+                          : ListView(
+                        children: cart.map((item) {
+                          return ListTile(
+                            leading: Image.network(
+                              item["image"] ?? '',
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Image.asset(
+                                'assets/food.jpg',
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            title: Text(item["name"], style: TextStyle(fontSize: 14)),
+                            subtitle: Text("x${item["quantity"]}"),
+                            trailing: Text(
+                              "\$${(item["price"] * item["quantity"]).toStringAsFixed(2)}",
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    TextField(
+                      maxLines: 2,
+                      decoration: InputDecoration(hintText: "Thêm ghi chú cho đơn hàng..."),
+                      onChanged: (value) => orderNote = value,
+                    ),
+                    SizedBox(height: 10),
+                    Text("Tổng cộng: \$${subtotal.toStringAsFixed(2)}",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    SizedBox(height: 10),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        if (cart.isEmpty) return;
+                        placeOrder();
+                      },
+                      icon: Icon(Icons.check_circle, color: Colors.white),
+                      label: Text("Đặt món", style: TextStyle(color: Colors.white)),
+                      style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                              (states) {
+                            if (states.contains(MaterialState.pressed)) return Color(0xFFE36F29); // cam đậm hơn
+                            return AppColors.primary; // cam chủ đạo
+                          },
+                        ),
+                        overlayColor: MaterialStateProperty.all(Colors.white.withOpacity(0.1)),
+                        padding: MaterialStateProperty.all(
+                          EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        ),
+                        shape: MaterialStateProperty.all(
+                          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        elevation: MaterialStateProperty.all(4),
+                        shadowColor: MaterialStateProperty.all(AppColors.primary.withOpacity(0.3)),
+                      ),
+                    ),
+
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -407,7 +409,7 @@ class _HomeScreenState extends State<HomeScreen> {
             "price": price,
             "image": image,
             "quantity": quantity,
-            "foodId": foodId, // 👈 Bổ sung foodId
+            "foodId": foodId,
           });
         }
       }
@@ -440,13 +442,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final uri = Uri.parse("http://localhost:3001/api/orders/create");
 
     final orderPayload = {
-      "tableId": selectedTable?.replaceAll(RegExp(r"\D"), ""), // "Bàn 001" -> "001"
+      "tableId": selectedTable?.replaceAll(RegExp(r"\D"), ""),
       "note": orderNote,
       "cart": cart.map((item) => {
-        "foodId": item["foodId"],  // phải có field này trong cart
+        "foodId": item["foodId"],
         "quantity": item["quantity"],
         "price": item["price"],
-        "ne": "", // hoặc note riêng từng món nếu có
+        "ne": "",
       }).toList()
     };
 
@@ -481,14 +483,10 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200) {
         List<dynamic> data = json.decode(response.body);
         final loadedTables = data.map((item) => TableList.fromJson(item)).toList();
-
-        // ⚠️ Chỉ chọn table đã mở (status == true) nếu có
         final openTables = loadedTables.where((t) => t.status).toList();
 
         setState(() {
           tables = loadedTables;
-
-          // Nếu widget.table không hợp lệ thì dùng bàn mở đầu tiên
           if (widget.table != null && openTables.any((t) => t.name == widget.table)) {
             selectedTable = widget.table!;
           } else if (openTables.isNotEmpty) {
@@ -507,12 +505,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<String?> fetchSecretCode() async {
     try {
-      final uri = Uri.parse("http://localhost:3002/api/codes"); // 🔁 URL API của bạn
+      final uri = Uri.parse("http://localhost:3002/api/codes");
       final response = await http.get(uri);
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['secretCode']; // 🔑 Trả về giá trị secretCode
+        return data['secretCode'];
       } else {
         print("❌ Lỗi server: ${response.statusCode}");
         return null;
@@ -527,7 +524,6 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final uri = Uri.parse("http://localhost:3001/api/categories");
       final response = await http.get(uri);
-
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
@@ -540,5 +536,4 @@ class _HomeScreenState extends State<HomeScreen> {
       print("❌ Lỗi kết nối khi lấy category: $e");
     }
   }
-
 }

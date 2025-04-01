@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'Sidebar.dart';
 import 'models/Bill.dart';
 import 'package:intl/intl.dart';
-
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'theme/color.dart';
+import 'pdfgenerator.dart';
 
 class BillScreen extends StatefulWidget {
   final String billId;
@@ -175,21 +176,15 @@ class _BillScreenState extends State<BillScreen> {
 
 
 class BillContent extends StatefulWidget {
-  final String billId;
-  final String tableName;
-  final List<BillItem> orderedItems;
+  final Bill bill;
   final double subtotal;
   final double tax;
-  final String status;
   final VoidCallback onComplete;
 
   const BillContent({
-    required this.billId,
-    required this.tableName,
-    required this.orderedItems,
+    required this.bill,
     required this.subtotal,
     required this.tax,
-    required this.status,
     required this.onComplete,
   });
 
@@ -202,55 +197,61 @@ class _BillContentState extends State<BillContent> {
 
   @override
   Widget build(BuildContext context) {
-    bool isCompleted = widget.status == 'completed';
-
-    double discountAmount = widget.subtotal * (discountPercent / 100);
-    double total = widget.subtotal + widget.tax - discountAmount;
+    final isCompleted = widget.bill.status == 'completed';
+    final discountAmount = widget.subtotal * discountPercent / 100;
+    final total = widget.subtotal + widget.tax - discountAmount;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 🧾 Header
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('🧾 ${widget.tableName} - ${widget.billId}',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text('🧾 Hóa đơn - ${widget.bill.table}',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             Chip(
               label: Text(
-                isCompleted ? 'Completed' : 'Pending',
-                style: TextStyle(color: Colors.white),
+                isCompleted ? 'Hoàn tất' : 'Đang chờ',
+                style: const TextStyle(color: Colors.white),
               ),
               backgroundColor: isCompleted ? Colors.green : Colors.orange,
             ),
           ],
         ),
-        SizedBox(height: 20),
-        ...widget.orderedItems.map((item) => Padding(
+        const SizedBox(height: 20),
+
+        // 📦 Danh sách món
+        ...widget.bill.items.map((item) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
             children: [
-              Image.network(
-                item.image ?? '',
-                width: 80,
-                height: 80,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Image.asset('assets/food.jpg', width: 80, height: 80, fit: BoxFit.cover);
-                },
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  item.image,
+                  width: 70,
+                  height: 70,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      Image.asset('assets/food.jpg', width: 70, height: 70),
+                ),
               ),
-              SizedBox(width: 15),
-              Expanded(child: Text(item.name, style: TextStyle(fontSize: 16))),
+              const SizedBox(width: 12),
+              Expanded(child: Text(item.name, style: const TextStyle(fontSize: 16))),
               Text('${item.qty} × \$${item.price.toStringAsFixed(2)}'),
             ],
           ),
         )),
-        Divider(height: 40, thickness: 1.2),
-        buildRow('Subtotal:', widget.subtotal),
-        buildRow('Tax:', widget.tax),
+        const Divider(height: 40, thickness: 1.2),
+
+        // 💸 Thông tin giá
+        buildRow('Tạm tính:', widget.subtotal),
+        buildRow('Thuế:', widget.tax),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Giảm giá (%):', style: TextStyle(fontSize: 16)),
+            const Text('Giảm giá (%):', style: TextStyle(fontSize: 16)),
             SizedBox(
               width: 80,
               child: TextField(
@@ -261,49 +262,78 @@ class _BillContentState extends State<BillContent> {
                     discountPercent = double.tryParse(value) ?? 0;
                   });
                 },
-                decoration: InputDecoration(hintText: "0", suffixText: "%"),
+                decoration: const InputDecoration(hintText: "0", suffixText: "%"),
               ),
             ),
           ],
         ),
-        SizedBox(height: 20),
-        buildRow('Total price:', total, isBold: true, color: Colors.red),
-        SizedBox(height: 20),
-        if (!isCompleted)
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
+        const SizedBox(height: 20),
+        buildRow('Tổng cộng:', total,
+            isBold: true, color: AppColors.primary),
+
+        const Spacer(),
+
+        // 🔘 Nút hành động
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (!isCompleted)
+              ElevatedButton.icon(
+                icon: const Icon(Icons.check_circle, color: AppColors.primaryDark),
+                label: const Text("Hoàn thành đơn",
+                    style: TextStyle(color: AppColors.dark)),
+                onPressed: widget.onComplete,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.primaryDark),
+                  ),
+                  elevation: 2,
+                ),
+              ),
+            const SizedBox(width: 12),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.print, color: Colors.white),
+              label: const Text("Xuất hóa đơn", style: TextStyle(color: Colors.white)),
+              onPressed: () async {
+                await generateAndSavePdf(widget.bill, widget.tax, discountPercent);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("✅ Đã lưu file PDF vào bộ nhớ.")),
+                );
+              },
+
               style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              onPressed: widget.onComplete,
-              child: Text("Hoàn thành đơn", style: TextStyle(fontSize: 18, color: Colors.white)),
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                elevation: 5,
+              ),
             ),
-          ),
-        SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            onPressed: () {},
-            child: Text("Xuất hóa đơn", style: TextStyle(fontSize: 18)),
-          ),
+          ],
         ),
       ],
     );
   }
 
-  Widget buildRow(String title, double amount, {bool isBold = false, Color color = Colors.black}) {
+  Widget buildRow(String title, double amount,
+      {bool isBold = false, Color color = AppColors.text}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: TextStyle(fontSize: 16, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+          Text(title,
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
           Text('\$${amount.toStringAsFixed(2)}',
-              style: TextStyle(fontSize: 16, color: color, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                  color: color)),
         ],
       ),
     );
