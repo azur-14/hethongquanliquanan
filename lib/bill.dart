@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'Sidebar.dart';
-import 'models/Bill.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import 'Sidebar.dart';
+import 'models/Bill.dart';
 import 'theme/color.dart';
 import 'pdfgenerator.dart';
 
@@ -176,15 +177,21 @@ class _BillScreenState extends State<BillScreen> {
 
 
 class BillContent extends StatefulWidget {
-  final Bill bill;
+  final String billId;
+  final String tableName;
+  final List<BillItem> orderedItems;
   final double subtotal;
   final double tax;
+  final String status;
   final VoidCallback onComplete;
 
   const BillContent({
-    required this.bill,
+    required this.billId,
+    required this.tableName,
+    required this.orderedItems,
     required this.subtotal,
     required this.tax,
+    required this.status,
     required this.onComplete,
   });
 
@@ -197,9 +204,10 @@ class _BillContentState extends State<BillContent> {
 
   @override
   Widget build(BuildContext context) {
-    final isCompleted = widget.bill.status == 'completed';
-    final discountAmount = widget.subtotal * discountPercent / 100;
-    final total = widget.subtotal + widget.tax - discountAmount;
+    bool isCompleted = widget.status == 'completed';
+
+    double discountAmount = widget.subtotal * (discountPercent / 100);
+    double total = widget.subtotal + widget.tax - discountAmount;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,7 +216,7 @@ class _BillContentState extends State<BillContent> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('🧾 Hóa đơn - ${widget.bill.table}',
+            Text('🧾 ${widget.tableName} - ${widget.billId}',
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             Chip(
               label: Text(
@@ -222,7 +230,7 @@ class _BillContentState extends State<BillContent> {
         const SizedBox(height: 20),
 
         // 📦 Danh sách món
-        ...widget.bill.items.map((item) => Padding(
+        ...widget.orderedItems.map((item) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
             children: [
@@ -298,7 +306,7 @@ class _BillContentState extends State<BillContent> {
               icon: const Icon(Icons.print, color: Colors.white),
               label: const Text("Xuất hóa đơn", style: TextStyle(color: Colors.white)),
               onPressed: () async {
-                await generateAndSavePdf(widget.bill, widget.tax, discountPercent);
+               
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text("✅ Đã lưu file PDF vào bộ nhớ.")),
                 );
