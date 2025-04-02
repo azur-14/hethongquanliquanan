@@ -18,95 +18,97 @@ router.get('/', async (req, res) => {
 
 // API tạo đơn hàng (mỗi bàn chỉ có duy nhất 1 đơn hàng pending, nếu đã tồn tại thì chỉ thêm món vào OrderDetail)
 router.post('/create', async (req, res) => {
-    try {
-      const { tableId, note, cart } = req.body;
-  
-      const existingOrder = await DonHang.findOne({
-        tableId,
-        status: 'pending'
-      });
-  
-      if (existingOrder) {
-        const orderId = existingOrder.orderId;
-  
-        for (let item of cart) {
-          const existingDetail = await OrderDetail.findOne({
-            orderId,
-            foodId: item.foodId
-          });
-  
-          if (existingOrder) {
-            const orderId = existingOrder.orderId;
-          
-            for (let item of cart) {
-              const existingDetail = await OrderDetail.findOne({
-                orderId,
-                foodId: item.foodId
-              });
-          
-              if (existingDetail) {
-                await OrderDetail.updateOne(
-                    { orderId, foodId: item.foodId },
-                    {
-                      $set: {
-                        quantity: existingDetail.quantity + item.quantity,
-                        price: existingDetail.price + item.price*item.quantity
-                      }
-                    }
-                );
-              } else {
-                await OrderDetail.create({
-                  orderId,
-                  foodId: item.foodId,
-                  quantity: item.quantity,
-                  price: item.price,
-                  ne: item.ne || "",
-                });
+  try {
+    const { tableId, note, cart } = req.body;
+
+    const existingOrder = await DonHang.findOne({
+      tableId,
+      status: 'pending'
+    });
+
+    // 🟡 Nếu đơn hàng đã tồn tại → thêm món mới
+    if (existingOrder) {
+      const orderId = existingOrder.orderId;
+
+      for (let item of cart) {
+        const existingDetail = await OrderDetail.findOne({
+          orderId,
+          foodId: item.foodId
+        });
+
+        if (existingDetail) {
+          await OrderDetail.updateOne(
+            { orderId, foodId: item.foodId },
+            {
+              $set: {
+                quantity: existingDetail.quantity + item.quantity,
+                price: existingDetail.price + item.price * item.quantity
               }
             }
-          
-            // ✅ Cập nhật lại tổng tiền
-            const updatedDetails = await OrderDetail.find({ orderId });
-            const newTotal = updatedDetails.reduce((sum, detail) => sum + detail.price, 0);
-            await DonHang.updateOne({ orderId }, { $set: { total: newTotal } });
-          
-            return res.status(200).json({ message: 'Order updated with new items', orderId });
-          }          
+          );
+        } else {
+          await OrderDetail.create({
+            orderId,
+            foodId: item.foodId,
+            quantity: item.quantity,
+            price: item.price,
+            ne: item.ne || "",
+          });
         }
-  
-        return res.status(200).json({ message: 'Order updated with new items', orderId });
       }
-  
-      const orderId = uuidv4();
-      const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  
-      const newOrder = new DonHang({
-        orderId,
-        tableId,
-        note,
-        total,
-        status: 'pending',
-      });
-  
-      await newOrder.save();
-  
-      const orderDetails = cart.map(item => ({
-        orderId,
-        foodId: item.foodId,
-        quantity: item.quantity,
-        price: item.price,
-        ne: item.ne || "",
-      }));
-  
-      await OrderDetail.insertMany(orderDetails);
-  
-      res.status(201).json({ message: 'Order created successfully', orderId });
-  
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Failed to create or update order' });
+
+      // ✅ Cập nhật lại tổng tiền
+      const updatedDetails = await OrderDetail.find({ orderId });
+      const newTotal = updatedDetails.reduce((sum, detail) => sum + detail.price, 0);
+
+      // ✅ Gộp note cũ + note mới (nếu có)
+      const oldNote = existingOrder.note || "";
+      const combinedNote = (oldNote + "; " + (note || "")).trim();
+
+      await DonHang.updateOne(
+        { orderId },
+        {
+          $set: {
+            total: newTotal,
+            note: combinedNote
+          }
+        }
+      );
+
+      return res.status(200).json({ message: 'Order updated with new items', orderId });
     }
-});  
+
+    // 🔵 Nếu đơn hàng chưa tồn tại → tạo mới
+    const orderId = uuidv4();
+    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+    const newOrder = new DonHang({
+      orderId,
+      tableId,
+      note,
+      total,
+      status: 'pending',
+    });
+
+    await newOrder.save();
+
+    const orderDetails = cart.map(item => ({
+      orderId,
+      foodId: item.foodId,
+      quantity: item.quantity,
+      price: item.price,
+      ne: item.ne || "",
+    }));
+
+    await OrderDetail.insertMany(orderDetails);
+
+    res.status(201).json({ message: 'Order created successfully', orderId });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to create or update order' });
+  }
+});
 
 //Lấy danh sách đơn hàng có trạng thái pending và orderDetails của nó
 router.get('/pending-with-details', async (req, res) => {
