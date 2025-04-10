@@ -32,6 +32,7 @@ dependencies:
     sdk: flutter
   http: ^0.13.6
   intl: ^0.18.1
+  universal_html: ^2.2.3
   month_picker_dialog: ^2.0.2
   pdf: ^3.10.4
   path_provider: ^2.0.11
@@ -67,6 +68,7 @@ flutter:
     - assets/welcome_left.jpg
     - assets/welcome_right.jpg
     - assets/food.jpg
+    - assets/fonts/Roboto-Regular.ttf
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

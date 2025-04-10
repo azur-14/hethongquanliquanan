@@ -45,7 +45,7 @@ class Sidebar extends StatelessWidget {
         targetPage = OrderPage(role: role, table: table);
       } else if (title == "Thống kê" && role == "Quản lý") {
         targetPage = BillStatisticsScreen();
-      } else if (title == "Generate Code" && role == "Quản lý") {
+      } else if (title == "Tạo mã bí mật" && role == "Quản lý") {
         targetPage = GenerateSecretCode();
       } else {
         return;

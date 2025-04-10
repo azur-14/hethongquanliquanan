@@ -25,7 +25,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
   // Thêm đoạn này vào State:
   int selectedQuarter = 1;
   int selectedYearForQuarter = DateTime.now().year;
-
+  final currencyFormatter = NumberFormat.decimalPattern('vi');
 // Hàm filteredBills sửa lại như sau:
   List<Map<String, dynamic>> get filteredBills {
     return allBills.where((bill) {
@@ -55,7 +55,6 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
       }
     }).toList();
   }
-
 
   List<Map<String, dynamic>> allBills = [];
 
@@ -195,7 +194,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
                         child: StatCard(
                           title: "Doanh thu",
                           subtitle: "Tổng tiền thu",
-                          value: "\$${totalRevenue.toStringAsFixed(2)}",
+                          value: "${currencyFormatter.format(totalRevenue)} đồng",
                           icon: Icons.attach_money,
                           color: Colors.green,
                         ),
@@ -222,7 +221,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
                               leading: Icon(Icons.receipt_long, color: Colors.orange),
                               title: Text("${bill['billId']} - Bàn ${bill['tableId']}"),
                               subtitle: Text("$billTimeVNFormatted ($shiftName)"),
-                              trailing: Text("\$${bill['total'].toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold)),
+                              trailing: Text("${currencyFormatter.format(bill['total'])} đồng", style: TextStyle(fontWeight: FontWeight.bold)),
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
