@@ -21,7 +21,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
   FilterOption selectedOption = FilterOption.day;
   List<Shift> allShifts = [];
   DateTime selectedDate = DateTime.now();
-  int selectedShift = 1;
+  String? selectedShiftName;
   // Thêm đoạn này vào State:
   int selectedQuarter = 1;
   int selectedYearForQuarter = DateTime.now().year;
@@ -35,8 +35,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
           return billDate.year == selectedDate.year &&
               billDate.month == selectedDate.month &&
               billDate.day == selectedDate.day &&
-              ((selectedShift == 1 && billDate.hour < 12) ||
-                  (selectedShift == 2 && billDate.hour >= 12));
+              bill['shiftName'] == selectedShiftName;
         case FilterOption.day:
           return billDate.year == selectedDate.year &&
               billDate.month == selectedDate.month &&
@@ -131,13 +130,18 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
 
                       // Chọn Ca (khi chọn thống kê theo Ca)
                       if (selectedOption == FilterOption.shift)
-                        DropdownButton<int>(
-                          value: selectedShift,
-                          items: [1, 2]
-                              .map((e) => DropdownMenuItem(value: e, child: Text("Ca $e")))
-                              .toList(),
-                          onChanged: (val) => setState(() => selectedShift = val!),
+                        DropdownButton<String>(
+                          value: selectedShiftName,
+                          hint: Text("Chọn ca"),
+                          items: allShifts.map((shift) {
+                            return DropdownMenuItem<String>(
+                              value: shift.name,
+                              child: Text(shift.name),
+                            );
+                          }).toList(),
+                          onChanged: (val) => setState(() => selectedShiftName = val),
                         ),
+
 
                       // Chọn Quý và Năm riêng biệt (khi chọn thống kê theo quý)
                       if (selectedOption == FilterOption.quarter) ...[
@@ -250,23 +254,31 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
 
   Future<void> fetchCompletedBills() async {
     try {
-      final uri = Uri.parse("http://localhost:3001/api/orders/completed"); // đổi nếu bạn dùng cổng khác
+      final uri = Uri.parse("http://localhost:3001/api/orders/completed");
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
 
+        final List<Map<String, dynamic>> enrichedBills = [];
+
+        for (var order in data) {
+          final billTime = DateTime.parse(order["time"]);
+          final shiftName = await fetchShiftFromApi(billTime); // Gọi shift API
+
+          enrichedBills.add({
+            'billId': '${order["orderId"].toString().padLeft(3, '0')}',
+            'tableId': order["tableId"],
+            'status': order["status"],
+            'note': order["note"] ?? '',
+            'total': (order["total"] as num).toDouble(),
+            'time': billTime,
+            'shiftName': shiftName, // 👈 Thêm ca vào bill
+          });
+        }
+
         setState(() {
-          allBills = data.map((order) {
-            return {
-              'billId': '${order["orderId"].toString().padLeft(3, '0')}',
-              'tableId': order["tableId"],
-              'status': order["status"],
-              'note': order["note"] ?? '',
-              'total': (order["total"] as num).toDouble(),
-              'time': DateTime.parse(order["time"]), // đảm bảo `createdTime` là chuỗi ISO
-            };
-          }).toList();
+          allBills = enrichedBills;
         });
       } else {
         print("❌ Lỗi khi lấy hóa đơn: ${response.statusCode}");
@@ -275,6 +287,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
       print("❌ Lỗi kết nối API hóa đơn: $e");
     }
   }
+
 
   Future<void> fetchShifts() async {
     try {
