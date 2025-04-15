@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Table = require('../models/Table');
 
-// Lấy danh sách tất cả bàn
+// Lấy danh sách tất cả bàn (menu, openTable, orderPage)
 router.get('/', async (req, res) => {
     try {
         const tables = await Table.find();
@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Cập nhật thông tin bàn
+// Cập nhật thông tin bàn (openTable)
 router.put('/:id', async (req, res) => {
     try {
         const { table_id, table_name, status } = req.body;
@@ -33,7 +33,7 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// Cập nhật trạng thái bàn theo tableId
+// Cập nhật trạng thái bàn theo tableId (bill)
 router.patch('/:tableId', async (req, res) => {
     try {
       const updated = await Table.findOneAndUpdate(

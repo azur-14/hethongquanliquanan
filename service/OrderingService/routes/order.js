@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// API tạo đơn hàng (mỗi bàn chỉ có duy nhất 1 đơn hàng pending, nếu đã tồn tại thì chỉ thêm món vào OrderDetail)
+// API tạo đơn hàng (mỗi bàn chỉ có duy nhất 1 đơn hàng pending, nếu đã tồn tại thì chỉ thêm món vào OrderDetail) (menu)
 router.post('/create', async (req, res) => {
   try {
     const { tableId, note, cart } = req.body;
@@ -111,7 +111,7 @@ router.post('/create', async (req, res) => {
   }
 });
 
-//Lấy danh sách đơn hàng có trạng thái pending và orderDetails của nó
+//Lấy danh sách đơn hàng có trạng thái pending và orderDetails của nó (kitchenOrder)
 router.get('/pending-with-details', async (req, res) => {
     try {
       const pendingOrders = await DonHang.find({ status: 'pending' });
@@ -141,7 +141,7 @@ router.get('/pending-with-details', async (req, res) => {
 });
   
   
-// GET: Đơn hàng theo tableId và trạng thái hoặc orderId
+// GET: Đơn hàng theo tableId và trạng thái hoặc orderId (bill)
 router.get('/bill/:tableId', async (req, res) => {
   try {
     const { tableId } = req.params;
@@ -200,7 +200,7 @@ router.get('/bill/:tableId', async (req, res) => {
   }
 });
 
-// GET: Lấy danh sách các đơn hàng có trạng thái completed
+// GET: Lấy danh sách các đơn hàng có trạng thái completed (thongke)
 router.get('/completed', async (req, res) => {
   try {
     const { fromDate, toDate, shiftId } = req.query;
@@ -262,7 +262,7 @@ router.get('/completed', async (req, res) => {
   }
 });
   
-// Cập nhật trạng thái đơn hàng thành completed
+// Cập nhật trạng thái đơn hàng thành completed (bill)
 router.put('/:orderId/status', async (req, res) => {
     try {
       const { orderId } = req.params;

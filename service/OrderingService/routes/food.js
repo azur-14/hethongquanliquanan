@@ -4,7 +4,7 @@ const Category = require('../models/Category'); // Import model Category
 
 const router = express.Router();
 
-// Lấy danh sách món ăn, có thể lọc theo danh mục hoặc tìm kiếm
+// Lấy danh sách món ăn, có thể lọc theo danh mục hoặc tìm kiếm (kitchenMenu, menu)
 router.get('/', async (req, res) => {
     try {
         const { categoryName, search } = req.query;
@@ -63,7 +63,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-// PUT /api/foods/:id/status
+// PUT /api/foods/:id/status (kitchenMenu)
 router.put('/:id/status', async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;

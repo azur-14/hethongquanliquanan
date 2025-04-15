@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// GET: Lấy danh sách OrderDetail theo tableId (chỉ đơn hàng pending)
+// GET: Lấy danh sách OrderDetail theo tableId (chỉ đơn hàng pending) (orderPage)
 router.get('/table/:tableId', async (req, res) => {
     try {
       const tableId = req.params.tableId;
@@ -45,7 +45,7 @@ router.get('/table/:tableId', async (req, res) => {
     }
 });
   
-//Cập nhật trạng thái ctdh
+//Cập nhật trạng thái ctdh (kicthenOrder)
 router.put('/:id/status', async (req, res) => {
     const { status } = req.body;
     try {

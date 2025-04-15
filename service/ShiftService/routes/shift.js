@@ -3,7 +3,7 @@ const Shift = require('../models/Shift');
 
 const router = express.Router();
 
-// Lấy tất cả ca làm việc
+// Lấy tất cả ca làm việc (thongke)
 router.get('/', async (req, res) => {
     try {
       const shifts = await Shift.find();
@@ -13,6 +13,7 @@ router.get('/', async (req, res) => {
     }
 });
 
+// (thongke)
 router.get('/by-time', async (req, res) => {
     try {
       const timeParam = req.query.time;
@@ -45,6 +46,7 @@ router.get('/by-time', async (req, res) => {
     }
 });
 
+// (order.js /completed)
 router.get('/:id', async (req, res) => {
   try {
     const shiftId = parseInt(req.params.id);
@@ -71,7 +73,7 @@ function generateSecretCode(length = 6) {
     return code;
 }
   
-  // PUT: Cập nhật lại secretCode ngẫu nhiên cho toàn bộ ca
+  // PUT: Cập nhật lại secretCode ngẫu nhiên cho toàn bộ ca (generalizeSecretCode)
 router.put('/generate-secret-codes', async (req, res) => {
     try {
       const shifts = await Shift.find();
@@ -100,7 +102,7 @@ router.put('/generate-secret-codes', async (req, res) => {
     }
 });
 
-// GET /api/codes/current-shift
+// GET /api/codes/current-shift (menu)
 router.get('/secret-codes/current-shift', async (req, res) => {
   try {
     const now = new Date();
@@ -131,7 +133,7 @@ router.get('/secret-codes/current-shift', async (req, res) => {
   }
 });
 
-// GET: /api/codes/all
+// GET: /api/codes/all (generalizeSecretCode)
 router.get('/secret-codes/all', async (req, res) => {
   try {
     const shifts = await Shift.find().sort({ shift_id: 1 }); // sort by ca 1, 2, 3, 4
