@@ -5,7 +5,6 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 
 const shiftRoutes = require('./routes/shift');
-const codeRoutes = require('./routes/code');
 
 const app = express();
 const PORT = 3002;
@@ -18,7 +17,6 @@ connectShiftDB(); // Kết nối MongoDB
 
 // Routes
 app.use('/api/shifts', shiftRoutes);
-app.use('/api/codes', codeRoutes);
 
 // Khởi chạy server
 app.listen(PORT, () => {

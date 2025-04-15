@@ -45,4 +45,69 @@ router.get('/by-time', async (req, res) => {
     }
 });
 
+router.get('/:id', async (req, res) => {
+  try {
+    const shiftId = parseInt(req.params.id);
+    const shift = await Shift.findOne({ shift_id: shiftId });
+
+    if (!shift) {
+      return res.status(404).json({ message: 'Không tìm thấy ca làm việc' });
+    }
+
+    res.json(shift);
+  } catch (err) {
+    console.error("❌ Lỗi khi lấy ca làm việc:", err);
+    res.status(500).json({ message: 'Lỗi server', error: err.message });
+  }
+});
+
+// Hàm tạo mã bí mật ngẫu nhiên (6 ký tự)
+function generateSecretCode(length = 6) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < length; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+}
+  
+  // PUT: Cập nhật lại secretCode ngẫu nhiên cho toàn bộ ca
+router.put('/generate-secret-codes', async (req, res) => {
+    try {
+      const shifts = await Shift.find();
+  
+      const updatedShifts = await Promise.all(
+        shifts.map(async (shift) => {
+          const newCode = generateSecretCode();
+          shift.secretCode = newCode; // luôn cập nhật lại
+          await shift.save();
+          return {
+            shift_id: shift.shift_id,
+            name: shift.name,
+            newSecretCode: newCode
+          };
+        })
+      );
+      console.log(updatedShifts);
+  
+      res.json({
+        message: 'Đã cập nhật lại secretCode cho tất cả các ca',
+        shifts: updatedShifts
+      });
+    } catch (error) {
+      console.error("❌ Lỗi khi cập nhật secretCode:", error);
+      res.status(500).json({ error: "Lỗi server khi cập nhật secretCode" });
+    }
+});
+
+// GET: Lấy tất cả các ca và secretCode
+router.get('/secret-codes', async (req, res) => {
+    try {
+      const shifts = await Shift.find().select('shift_id name secretCode');
+      res.json({ shifts });
+    } catch (err) {
+      res.status(500).json({ message: 'Lỗi server', error: err.message });
+    }
+});  
+
 module.exports = router;

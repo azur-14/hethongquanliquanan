@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class Shift {
-  final String id;
+  final int id;
   final String name;
   String secretCode;
 
@@ -14,7 +14,7 @@ class Shift {
 
   factory Shift.fromJson(Map<String, dynamic> json) {
     return Shift(
-      id: json['_id'],
+      id: json['shift_id'],
       name: json['name'],
       secretCode: json['secretCode'] ?? '-----',
     );
@@ -34,32 +34,65 @@ class _GenerateSecretCodeState extends State<GenerateSecretCode> {
   @override
   void initState() {
     super.initState();
-    fetchShifts();
+    generateNewSecretCodes();
   }
 
-  void fetchShifts() {
-    setState(() {
-      allShifts = [
-        Shift(id: '1', name: 'Ca sáng', secretCode: 'ABCDEF'),
-        Shift(id: '2', name: 'Ca trưa', secretCode: 'ABCDEF'),
-        Shift(id: '3', name: 'Ca chiều', secretCode: 'ABCDEF'),
-        Shift(id: '4', name: 'Ca tối', secretCode: 'ABCDEF'),
-      ];
-    });
+  Future<void> generateNewSecretCodes() async {
+    try {
+      final uri = Uri.parse("http://localhost:3002/api/shifts/generate-secret-codes");
+
+      final response = await http.put(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print("✅ Cập nhật thành công các secretCode:");
+
+        final List<Shift> fetchedShifts = data['shifts'].map<Shift>((json) {
+          return Shift(
+            id: json['shift_id'],
+            name: json['name'],
+            secretCode: json['newSecretCode'] ?? '-----',
+          );
+        }).toList();
+
+        setState(() {
+          allShifts = fetchedShifts;
+        });
+
+      } else {
+        print("❌ Lỗi khi cập nhật secretCode: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Lỗi kết nối tới API: $e");
+    }
   }
 
-  String generateRandomCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    return List.generate(6, (index) => chars[Random().nextInt(chars.length)]).join();
-  }
+  Future<void> fetchAllSecretCodes() async {
+    try {
+      final uri = Uri.parse("http://localhost:3002/api/shifts/secret-codes");
 
-  Future<void> regenerateAllCodes() async {
-    setState(() {
-      allShifts = allShifts.map((shift) {
-        shift.secretCode = generateRandomCode();
-        return shift;
-      }).toList();
-    });
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<Shift> fetchedShifts = data['shifts'].map<Shift>((json) {
+          return Shift.fromJson(json);
+        }).toList();
+
+        setState(() {
+          allShifts = fetchedShifts;
+        });
+      } else {
+        print("❌ Lỗi khi lấy danh sách secretCode: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Lỗi kết nối khi lấy secretCode: $e");
+    }
   }
 
   @override
@@ -149,7 +182,9 @@ class _GenerateSecretCodeState extends State<GenerateSecretCode> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: regenerateAllCodes,
+                        onPressed: () async {
+                          await generateNewSecretCodes();
+                        },
                       ),
                     ),
                     const SizedBox(height: 16),
