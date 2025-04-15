@@ -1,5 +1,5 @@
-// ✅ Import & định nghĩa như cũ
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:soagiuakiquanan/models/OrderItems.dart';
 import 'Sidebar.dart';
 import 'bill.dart';
@@ -24,7 +24,7 @@ class _OrderPageState extends State<OrderPage> {
   List<TableList> tables = [];
   List<OrderItems> orderItems = [];
   String selectedSidebarItem = "Đơn món";
-
+  final currencyFormatter = NumberFormat.decimalPattern('vi');
   @override
   void initState() {
     super.initState();
@@ -215,7 +215,7 @@ class _OrderPageState extends State<OrderPage> {
                             ],
                           ),
                           Text(
-                            "x${item.quantity}  \$${item.price.toStringAsFixed(2)}",
+                            "x${item.quantity}  ${currencyFormatter.format(item.price)} đồng",
                             style: TextStyle(fontSize: 14, color: AppColors.text),
                           ),
                         ],
@@ -228,14 +228,14 @@ class _OrderPageState extends State<OrderPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text("Tạm tính:", style: TextStyle(color: AppColors.text)),
-                      Text("\$${subtotal.toStringAsFixed(2)}", style: TextStyle(color: AppColors.text)),
+                      Text("${currencyFormatter.format(subtotal)} đồng", style: TextStyle(color: AppColors.text)),
                     ],
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text("Thuế:", style: TextStyle(color: AppColors.text)),
-                      Text("\$${tax.toStringAsFixed(2)}", style: TextStyle(color: AppColors.text)),
+                      Text("${currencyFormatter.format(tax)} đồng", style: TextStyle(color: AppColors.text)),
                     ],
                   ),
                   SizedBox(height: 10),
@@ -244,7 +244,7 @@ class _OrderPageState extends State<OrderPage> {
                     children: [
                       Text("Tổng cộng:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       Text(
-                        "\$${totalPrice.toStringAsFixed(2)}",
+                        "${currencyFormatter.format(totalPrice)} đồng",
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary),
                       ),
                     ],

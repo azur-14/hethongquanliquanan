@@ -16,6 +16,12 @@ class _GenerateSecretCodeState extends State<GenerateSecretCode> {
   String? generatedCode;
 
   @override
+  void initState() {
+    super.initState();
+    fetchCurrentCode();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
@@ -104,6 +110,25 @@ class _GenerateSecretCodeState extends State<GenerateSecretCode> {
       ),
     );
   }
+  Future<void> fetchCurrentCode() async {
+    final url = Uri.parse("http://localhost:3002/api/codes/"); // ← đúng route backend
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          generatedCode = data['secretCode'];
+        });
+      } else {
+        print("⚠️ Không tìm thấy mã hiện tại.");
+      }
+    } catch (e) {
+      print("❌ Lỗi kết nối khi lấy mã hiện tại: $e");
+    }
+  }
+
 
   Future<void> generateNewCode() async {
     final url = Uri.parse("http://localhost:3002/api/codes/create"); // 🔁 đổi domain nếu cần

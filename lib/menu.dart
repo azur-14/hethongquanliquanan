@@ -24,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<Food> foodItems = [];
   List<TableList> tables = [];
+  final currencyFormatter = NumberFormat.decimalPattern('vi');
 
   List<Map<String, dynamic>> cart = [];
   String orderNote = "";
@@ -289,7 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           )["quantity"];
                           return FoodItemCard(
                             name: food.name,
-                            price: "\$${food.price.toStringAsFixed(2)}",
+                            price: "${currencyFormatter.format(food.price)} đồng",
                             image: food.image ?? 'assets/food.jpg',
                             status: food.status,
                             quantity: quantity,
@@ -342,7 +343,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             title: Text(item["name"], style: TextStyle(fontSize: 14)),
                             subtitle: Text("x${item["quantity"]}"),
                             trailing: Text(
-                              "\$${(item["price"] * item["quantity"]).toStringAsFixed(2)}",
+                              "${currencyFormatter.format(item["price"] * item["quantity"])} đồng",
                             ),
                           );
                         }).toList(),
@@ -355,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onChanged: (value) => orderNote = value,
                     ),
                     SizedBox(height: 10),
-                    Text("Tổng cộng: \$${subtotal.toStringAsFixed(2)}",
+                    Text("Tổng cộng: ${currencyFormatter.format(subtotal)} đồng",
                         style: TextStyle(fontWeight: FontWeight.bold)),
                     SizedBox(height: 10),
                     ElevatedButton.icon(
