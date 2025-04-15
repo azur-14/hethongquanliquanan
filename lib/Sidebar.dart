@@ -183,9 +183,9 @@ class Sidebar extends StatelessWidget {
           if (role == "Quản lý")
             SidebarItem(
               icon: Icons.vpn_key,
-              title: "Generate Code",
-              isSelected: selectedItem == "Generate Code",
-              onTap: () => navigateToPage(context, "Generate Code"),
+              title: "Tạo mã bí mật",
+              isSelected: selectedItem == "Tạo mã bí mật",
+              onTap: () => navigateToPage(context, "Tạo mã bí mật"),
             ),
 
           const Padding(

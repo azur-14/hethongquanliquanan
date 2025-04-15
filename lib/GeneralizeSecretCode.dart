@@ -1,9 +1,25 @@
-import 'package:flutter/material.dart';
 import 'dart:math';
-import 'Sidebar.dart';
 
+import 'package:flutter/material.dart';
+import 'Sidebar.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+class Shift {
+  final String id;
+  final String name;
+  String secretCode;
+
+  Shift({required this.id, required this.name, required this.secretCode});
+
+  factory Shift.fromJson(Map<String, dynamic> json) {
+    return Shift(
+      id: json['_id'],
+      name: json['name'],
+      secretCode: json['secretCode'] ?? '-----',
+    );
+  }
+}
 
 class GenerateSecretCode extends StatefulWidget {
   const GenerateSecretCode({Key? key}) : super(key: key);
@@ -13,12 +29,37 @@ class GenerateSecretCode extends StatefulWidget {
 }
 
 class _GenerateSecretCodeState extends State<GenerateSecretCode> {
-  String? generatedCode;
+  List<Shift> allShifts = [];
 
   @override
   void initState() {
     super.initState();
-    fetchCurrentCode();
+    fetchShifts();
+  }
+
+  void fetchShifts() {
+    setState(() {
+      allShifts = [
+        Shift(id: '1', name: 'Ca sáng', secretCode: 'ABCDEF'),
+        Shift(id: '2', name: 'Ca trưa', secretCode: 'ABCDEF'),
+        Shift(id: '3', name: 'Ca chiều', secretCode: 'ABCDEF'),
+        Shift(id: '4', name: 'Ca tối', secretCode: 'ABCDEF'),
+      ];
+    });
+  }
+
+  String generateRandomCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    return List.generate(6, (index) => chars[Random().nextInt(chars.length)]).join();
+  }
+
+  Future<void> regenerateAllCodes() async {
+    setState(() {
+      allShifts = allShifts.map((shift) {
+        shift.secretCode = generateRandomCode();
+        return shift;
+      }).toList();
+    });
   }
 
   @override
@@ -36,7 +77,7 @@ class _GenerateSecretCodeState extends State<GenerateSecretCode> {
             child: Center(
               child: Container(
                 padding: const EdgeInsets.all(30),
-                constraints: const BoxConstraints(maxWidth: 500),
+                constraints: const BoxConstraints(maxWidth: 600),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -52,40 +93,55 @@ class _GenerateSecretCodeState extends State<GenerateSecretCode> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
-                      "Tạo mã bí mật mới",
+                      "Mã bí mật theo từng ca",
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2e2e48),
                       ),
                     ),
-                    const SizedBox(height: 30),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color:  Color(0xFF2e2e48)),
-                      ),
-                      child: Text(
-                        generatedCode ?? '-----',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2e2e48),
-                          letterSpacing: 8,
-                        ),
-                      ),
-                    ),
+                    const SizedBox(height: 20),
+                    if (allShifts.isEmpty)
+                      const CircularProgressIndicator()
+                    else
+                      ...allShifts.map((shift) =>
+                          Container(
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Color(0xFF2e2e48)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  shift.name,
+                                  style: const TextStyle(fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  shift.secretCode,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2e2e48),
+                                    letterSpacing: 6,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )),
                     const SizedBox(height: 30),
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton.icon(
                         icon: const Icon(Icons.refresh, size: 28),
-                        label: const Text("Tạo mã mới", style: TextStyle(fontSize: 18)),
+                        label: const Text(
+                            "Tạo mã mới cho tất cả ca", style: TextStyle(
+                            fontSize: 18)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFF2e2e48),
                           foregroundColor: Colors.white,
@@ -93,13 +149,13 @@ class _GenerateSecretCodeState extends State<GenerateSecretCode> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: generateNewCode,
+                        onPressed: regenerateAllCodes,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     const Text(
-                      "Tạo mã mới vào ca sau.",
-                      style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                      "Nhấn nút để tạo mã mới cho toàn bộ các ca trong ngày.",
+                      style: TextStyle(color: Colors.grey),
                     ),
                   ],
                 ),
@@ -110,43 +166,4 @@ class _GenerateSecretCodeState extends State<GenerateSecretCode> {
       ),
     );
   }
-  Future<void> fetchCurrentCode() async {
-    final url = Uri.parse("http://localhost:3002/api/codes/"); // ← đúng route backend
-
-    try {
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          generatedCode = data['secretCode'];
-        });
-      } else {
-        print("⚠️ Không tìm thấy mã hiện tại.");
-      }
-    } catch (e) {
-      print("❌ Lỗi kết nối khi lấy mã hiện tại: $e");
-    }
-  }
-
-
-  Future<void> generateNewCode() async {
-    final url = Uri.parse("http://localhost:3002/api/codes/create"); // 🔁 đổi domain nếu cần
-
-    try {
-      final response = await http.post(url);
-
-      if (response.statusCode == 201) {
-        final data = json.decode(response.body);
-        setState(() {
-          generatedCode = data['secretCode']; // gán mã để hiển thị
-        });
-      } else {
-        print("❌ Lỗi khi tạo mã: ${response.body}");
-      }
-    } catch (e) {
-      print("❌ Lỗi kết nối khi tạo mã: $e");
-    }
-  }
-
 }
