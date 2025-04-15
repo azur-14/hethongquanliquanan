@@ -21,7 +21,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
   FilterOption selectedOption = FilterOption.day;
   List<Shift> allShifts = [];
   DateTime selectedDate = DateTime.now();
-  String? selectedShiftName;
+  String selectedShiftName = "Ca sáng";
   // Thêm đoạn này vào State:
   int selectedQuarter = 1;
   int selectedYearForQuarter = DateTime.now().year;
@@ -74,6 +74,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
       );
       if (picked != null) {
         setState(() => selectedDate = picked);
+        await fetchCompletedBills();
       }
     } else if (selectedOption == FilterOption.year || selectedOption == FilterOption.quarter) {
       final picked = await showDatePicker(
@@ -85,6 +86,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
       );
       if (picked != null) {
         setState(() => selectedDate = DateTime(picked.year));
+        await fetchCompletedBills();
       }
     } else {
       final picked = await showDatePicker(
@@ -95,6 +97,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
       );
       if (picked != null) {
         setState(() => selectedDate = picked);
+        await fetchCompletedBills();
       }
     }
   }
@@ -117,7 +120,12 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
                     children: [
                       DropdownButton<FilterOption>(
                         value: selectedOption,
-                        onChanged: (val) => setState(() => selectedOption = val!),
+                        onChanged: (val) async {
+                          if (val != null) {
+                            setState(() => selectedOption = val);
+                            await fetchCompletedBills(); // ✅ Gọi API sau khi chọn
+                          }
+                        },
                         items: const [
                           DropdownMenuItem(value: FilterOption.shift, child: Text("Theo Ca")),
                           DropdownMenuItem(value: FilterOption.day, child: Text("Theo Ngày")),
@@ -139,7 +147,10 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
                               child: Text(shift.name),
                             );
                           }).toList(),
-                          onChanged: (val) => setState(() => selectedShiftName = val),
+                          onChanged: (val) async {
+                            setState(() => selectedShiftName = val!);
+                            await fetchCompletedBills(); // ✅ Gọi lại khi chọn ca
+                          },
                         ),
 
 
@@ -150,7 +161,10 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
                           items: [1, 2, 3, 4]
                               .map((e) => DropdownMenuItem(value: e, child: Text("Quý $e")))
                               .toList(),
-                          onChanged: (val) => setState(() => selectedQuarter = val!),
+                          onChanged: (val) async {
+                            setState(() => selectedQuarter = val!);
+                            await fetchCompletedBills(); // ✅ Gọi lại khi chọn quý
+                          },
                         ),
                         SizedBox(width: 20),
                         DropdownButton<int>(
@@ -158,7 +172,10 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
                           items: List.generate(10, (index) => 2023 + index)
                               .map((e) => DropdownMenuItem(value: e, child: Text("$e")))
                               .toList(),
-                          onChanged: (val) => setState(() => selectedYearForQuarter = val!),
+                          onChanged: (val) async {
+                            setState(() => selectedYearForQuarter = val!);
+                            await fetchCompletedBills(); // ✅ Gọi lại khi chọn năm của quý
+                          },
                         ),
                       ],
 
@@ -254,7 +271,36 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
 
   Future<void> fetchCompletedBills() async {
     try {
-      final uri = Uri.parse("http://localhost:3001/api/orders/completed");
+      // 1. Xác định khoảng thời gian lọc
+      DateTime fromDate = selectedDate;
+      DateTime toDate = selectedDate;
+
+      if (selectedOption == FilterOption.month) {
+        fromDate = DateTime(selectedDate.year, selectedDate.month, 1);
+        toDate = DateTime(selectedDate.year, selectedDate.month + 1, 0);
+      } else if (selectedOption == FilterOption.quarter) {
+        int startMonth = (selectedQuarter - 1) * 3 + 1;
+        fromDate = DateTime(selectedYearForQuarter, startMonth, 1);
+        toDate = DateTime(selectedYearForQuarter, startMonth + 3, 0);
+      } else if (selectedOption == FilterOption.year) {
+        fromDate = DateTime(selectedDate.year, 1, 1);
+        toDate = DateTime(selectedDate.year, 12, 31);
+      }
+
+      // 2. Format ngày
+      final fromDateStr = DateFormat('yyyy-MM-dd').format(fromDate);
+      final toDateStr = DateFormat('yyyy-MM-dd').format(toDate);
+
+      // 3. Tạo URL có kèm shiftId nếu cần
+      String url = 'http://localhost:3001/api/orders/completed?fromDate=$fromDateStr&toDate=$toDateStr';
+      if (selectedOption == FilterOption.shift && selectedShiftName != null) {
+        final shift = allShifts.firstWhere((s) => s.name == selectedShiftName, orElse: () => allShifts.first);
+        url += '&shiftId=${shift.shiftId}';
+      }
+
+      print(url);
+
+      final uri = Uri.parse(url);
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
@@ -263,8 +309,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
         final List<Map<String, dynamic>> enrichedBills = [];
 
         for (var order in data) {
-          final billTime = DateTime.parse(order["time"]);
-          final shiftName = await fetchShiftFromApi(billTime); // Gọi shift API
+          final shiftName = await fetchShiftFromApi(DateTime.parse(order["timeEnd"])); // 👈 gọi API lấy tên ca
 
           enrichedBills.add({
             'billId': '${order["orderId"].toString().padLeft(3, '0')}',
@@ -272,14 +317,16 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
             'status': order["status"],
             'note': order["note"] ?? '',
             'total': (order["total"] as num).toDouble(),
-            'time': billTime,
-            'shiftName': shiftName, // 👈 Thêm ca vào bill
+            'time': DateTime.parse(order["timeEnd"]),
+            'shiftName': shiftName, // 👈 thêm để filteredBills lọc đúng
           });
         }
 
+        print(enrichedBills);
         setState(() {
           allBills = enrichedBills;
         });
+
       } else {
         print("❌ Lỗi khi lấy hóa đơn: ${response.statusCode}");
       }

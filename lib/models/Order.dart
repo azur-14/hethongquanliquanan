@@ -6,7 +6,8 @@ class Order {
   final String status;
   final String? note;
   final double total;
-  final DateTime time;
+  final DateTime timeCreated;
+  final DateTime? timeEnd;
   final List<OrderItems> details;
 
   Order({
@@ -15,7 +16,8 @@ class Order {
     required this.status,
     required this.note,
     required this.total,
-    required this.time,
+    required this.timeCreated,
+    this.timeEnd,
     required this.details,
   });
 
@@ -26,7 +28,8 @@ class Order {
       status: json['status'],
       note: json['note'],
       total: (json['total'] as num).toDouble(),
-      time: DateTime.parse(json['time']),
+      timeCreated: DateTime.parse(json['timeCreated']),
+      timeEnd: json['timeEnd'] != null ? DateTime.tryParse(json['timeEnd']) : null,
       details: (json['details'] as List<dynamic>)
           .map((item) => OrderItems.fromJson(item))
           .toList(),

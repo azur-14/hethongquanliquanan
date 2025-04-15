@@ -87,7 +87,7 @@ class _KitchenOrderScreenState extends State<KitchenOrderScreen> {
                                   Icon(Icons.access_time,
                                       size: 16, color: Colors.grey),
                                   SizedBox(width: 5),
-                                  Text(DateFormat('HH:mm dd/MM/yyyy').format(order.time),
+                                  Text(DateFormat('HH:mm dd/MM/yyyy').format(order.timeCreated),
                                       style: TextStyle(fontSize: 12, color: Colors.grey)),
                                 ],
                               ),

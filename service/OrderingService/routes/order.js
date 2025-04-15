@@ -3,6 +3,7 @@ const DonHang = require('../models/Order');
 const OrderDetail = require('../models/OrderDetail');
 const Food = require('../models/Food');
 const { v4: uuidv4 } = require('uuid');
+const axios = require('axios');
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ router.post('/create', async (req, res) => {
       status: 'pending'
     });
 
-    // 🟡 Nếu đơn hàng đã tồn tại → thêm món mới
+    // Nếu đơn hàng đã tồn tại → thêm món mới
     if (existingOrder) {
       const orderId = existingOrder.orderId;
 
@@ -57,11 +58,11 @@ router.post('/create', async (req, res) => {
         }
       }
 
-      // ✅ Cập nhật lại tổng tiền
+      // Cập nhật lại tổng tiền
       const updatedDetails = await OrderDetail.find({ orderId });
       const newTotal = updatedDetails.reduce((sum, detail) => sum + detail.price, 0);
 
-      // ✅ Gộp note cũ + note mới (nếu có)
+      // Gộp note cũ + note mới (nếu có)
       const oldNote = existingOrder.note || "";
       const combinedNote = (oldNote + "; " + (note || "")).trim();
 
@@ -78,7 +79,7 @@ router.post('/create', async (req, res) => {
       return res.status(200).json({ message: 'Order updated with new items', orderId });
     }
 
-    // 🔵 Nếu đơn hàng chưa tồn tại → tạo mới
+    // Nếu đơn hàng chưa tồn tại → tạo mới
     const orderId = uuidv4();
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
@@ -166,7 +167,7 @@ router.get('/bill/:tableId', async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
     }
 
-    // 🔄 Lấy chi tiết đơn hàng
+    // Lấy chi tiết đơn hàng
     const orderDetails = await OrderDetail.find({ orderId: order.orderId });
 
     // 🍽 Lấy thông tin món ăn
@@ -202,22 +203,76 @@ router.get('/bill/:tableId', async (req, res) => {
 // GET: Lấy danh sách các đơn hàng có trạng thái completed
 router.get('/completed', async (req, res) => {
   try {
-    const completedOrders = await DonHang.find({ status: 'completed' });
-    res.status(200).json(completedOrders);
-  } catch (err) {
-    console.error("❌ Lỗi khi lấy đơn hàng hoàn tất:", err);
-    res.status(500).json({ error: 'Lỗi server' });
+    const { fromDate, toDate, shiftId } = req.query;
+
+    if (!fromDate || !toDate) {
+      return res.status(400).json({ message: 'Thiếu fromDate hoặc toDate' });
+    }
+
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+    to.setHours(23, 59, 59, 999);
+
+    // 1. Lọc theo thời gian
+    let filter = {
+      status: 'completed',
+      timeEnd: { $gte: from, $lte: to }
+    };
+
+    let orders = await DonHang.find(filter).lean();
+
+    // 2. Nếu có shiftId, gọi sang shift service
+    if (shiftId) {
+      const shiftApi = `http://localhost:3002/api/shifts/${shiftId}`;
+      const shiftRes = await axios.get(shiftApi);
+      const shift = shiftRes.data;
+
+      const [fromHour, fromMin] = shift.from.split(':').map(Number);
+      const [toHour, toMin] = shift.to.split(':').map(Number);
+
+      // Giới hạn chỉ lấy đơn hàng của ngày fromDate (giờ VN)
+      orders = orders.filter(order => {
+        const utcTime = new Date(order.timeEnd);
+        const vnTime = new Date(utcTime.getTime() - 7 * 60 * 60 * 1000); // ⏰ +7h
+
+        // Chỉ xét đơn hàng trong đúng ngày fromDate (theo giờ VN)
+        const sameDate =
+          vnTime.getFullYear() === from.getFullYear() &&
+          vnTime.getMonth() === from.getMonth() &&
+          vnTime.getDate() === from.getDate();
+
+        if (!sameDate) return false;
+
+        const fromTime = new Date(vnTime);
+        const toTime = new Date(vnTime);
+        fromTime.setHours(fromHour, fromMin, 0, 0);
+        toTime.setHours(toHour, toMin, 0, 0);
+        if (toTime < fromTime) toTime.setDate(toTime.getDate() + 1); // xử lý ca qua ngày
+
+        const inShift = vnTime >= fromTime && vnTime <= toTime;
+
+        return inShift;
+      });
+    }
+
+    res.json(orders);
+  } catch (error) {
+    console.error("❌ Lỗi khi lọc hóa đơn:", error);
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
   }
 });
   
-// ✅ Cập nhật trạng thái đơn hàng thành completed
+// Cập nhật trạng thái đơn hàng thành completed
 router.put('/:orderId/status', async (req, res) => {
     try {
       const { orderId } = req.params;
   
       const updatedOrder = await DonHang.findOneAndUpdate(
         { orderId },
-        { status: 'completed' },
+        {
+            status: 'completed',
+            timeEnd: new Date()
+        },
         { new: true }
       );
   
