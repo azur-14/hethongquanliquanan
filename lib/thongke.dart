@@ -123,7 +123,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
                         onChanged: (val) async {
                           if (val != null) {
                             setState(() => selectedOption = val);
-                            await fetchCompletedBills(); // ✅ Gọi API sau khi chọn
+                            await fetchCompletedBills();
                           }
                         },
                         items: const [
@@ -149,7 +149,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
                           }).toList(),
                           onChanged: (val) async {
                             setState(() => selectedShiftName = val!);
-                            await fetchCompletedBills(); // ✅ Gọi lại khi chọn ca
+                            await fetchCompletedBills();
                           },
                         ),
 
@@ -163,7 +163,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
                               .toList(),
                           onChanged: (val) async {
                             setState(() => selectedQuarter = val!);
-                            await fetchCompletedBills(); // ✅ Gọi lại khi chọn quý
+                            await fetchCompletedBills();
                           },
                         ),
                         SizedBox(width: 20),
@@ -174,7 +174,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
                               .toList(),
                           onChanged: (val) async {
                             setState(() => selectedYearForQuarter = val!);
-                            await fetchCompletedBills(); // ✅ Gọi lại khi chọn năm của quý
+                            await fetchCompletedBills();
                           },
                         ),
                       ],
@@ -309,7 +309,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
         final List<Map<String, dynamic>> enrichedBills = [];
 
         for (var order in data) {
-          final shiftName = await fetchShiftFromApi(DateTime.parse(order["timeEnd"])); // 👈 gọi API lấy tên ca
+          final shiftName = await fetchShiftFromApi(DateTime.parse(order["timeEnd"]));
 
           enrichedBills.add({
             'billId': '${order["orderId"].toString().padLeft(3, '0')}',
@@ -318,7 +318,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
             'note': order["note"] ?? '',
             'total': (order["total"] as num).toDouble(),
             'time': DateTime.parse(order["timeEnd"]),
-            'shiftName': shiftName, // 👈 thêm để filteredBills lọc đúng
+            'shiftName': shiftName,
           });
         }
 
@@ -328,10 +328,10 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
         });
 
       } else {
-        print("❌ Lỗi khi lấy hóa đơn: ${response.statusCode}");
+        print("Lỗi khi lấy hóa đơn: ${response.statusCode}");
       }
     } catch (e) {
-      print("❌ Lỗi kết nối API hóa đơn: $e");
+      print("Lỗi kết nối API hóa đơn: $e");
     }
   }
 
@@ -347,10 +347,10 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
           allShifts = data.map((e) => Shift.fromJson(e)).toList();
         });
       } else {
-        print("❌ Lỗi khi lấy ca làm việc: ${response.statusCode}");
+        print("Lỗi khi lấy ca làm việc: ${response.statusCode}");
       }
     } catch (e) {
-      print("❌ Lỗi kết nối API shift: $e");
+      print("Lỗi kết nối API shift: $e");
     }
   }
 
@@ -365,7 +365,7 @@ class _BillStatisticsScreenState extends State<BillStatisticsScreen> {
       final data = jsonDecode(response.body);
       return data['shiftName'] ?? "Không rõ";
     } else {
-      print("❌ Không thể lấy ca từ API: ${response.body}");
+      print("Không thể lấy ca từ API: ${response.body}");
       return "Không rõ";
     }
   }

@@ -39,7 +39,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     if (selectedRole == 'Quản lý') {
       if (passwordController.text != managerPassword) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Mật khẩu sai!')),
+          SnackBar(content: Text('Mật khẩu sai!')),
         );
         return;
       }
@@ -213,11 +213,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         final data = jsonDecode(response.body);
         return data['password']; // 👈 Lấy mật khẩu từ JSON
       } else {
-        print("❌ Lỗi server: ${response.statusCode}");
+        print("Lỗi server: ${response.statusCode}");
         return null;
       }
     } catch (e) {
-      print("❌ Lỗi kết nối: $e");
+      print("Lỗi kết nối: $e");
       return null;
     }
   }
@@ -225,9 +225,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   void checkAdminPassword() async {
     managerPassword = await fetchAdminPassword();
     if (managerPassword != null) {
-      print("🔑 Mật khẩu của admin: $managerPassword");
+      print("Success");
     } else {
-      print("❌ Không thể lấy mật khẩu admin.");
+      print("Không thể lấy mật khẩu admin.");
     }
   }
 

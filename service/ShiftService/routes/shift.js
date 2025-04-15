@@ -56,7 +56,7 @@ router.get('/:id', async (req, res) => {
 
     res.json(shift);
   } catch (err) {
-    console.error("❌ Lỗi khi lấy ca làm việc:", err);
+    console.error("Lỗi khi lấy ca làm việc:", err);
     res.status(500).json({ message: 'Lỗi server', error: err.message });
   }
 });
@@ -95,19 +95,56 @@ router.put('/generate-secret-codes', async (req, res) => {
         shifts: updatedShifts
       });
     } catch (error) {
-      console.error("❌ Lỗi khi cập nhật secretCode:", error);
+      console.error("Lỗi khi cập nhật secretCode:", error);
       res.status(500).json({ error: "Lỗi server khi cập nhật secretCode" });
     }
 });
 
-// GET: Lấy tất cả các ca và secretCode
-router.get('/secret-codes', async (req, res) => {
-    try {
-      const shifts = await Shift.find().select('shift_id name secretCode');
-      res.json({ shifts });
-    } catch (err) {
-      res.status(500).json({ message: 'Lỗi server', error: err.message });
+// GET /api/codes/current-shift
+router.get('/secret-codes/current-shift', async (req, res) => {
+  try {
+    const now = new Date();
+    now.setHours(now.getHours()); // VN time
+
+    const allShifts = await Shift.find();
+
+    for (const shift of allShifts) {
+      const [fromHour, fromMin] = shift.from.split(':').map(Number);
+      const [toHour, toMin] = shift.to.split(':').map(Number);
+
+      const start = new Date(now);
+      const end = new Date(now);
+      start.setHours(fromHour, fromMin, 0, 0);
+      end.setHours(toHour, toMin, 0, 0);
+
+      if (end < start) end.setDate(end.getDate() + 1); // ca qua đêm
+
+      if (now >= start && now <= end) {
+        return res.json({ shiftId: shift.shift_id, shiftName: shift.name, secretCode: shift.secretCode });
+      }
     }
-});  
+
+    res.status(404).json({ message: 'Không có ca nào đang hoạt động' });
+  } catch (error) {
+    console.error("Lỗi khi lấy mã bí mật ca hiện tại:", error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+});
+
+// GET: /api/codes/all
+router.get('/secret-codes/all', async (req, res) => {
+  try {
+    const shifts = await Shift.find().sort({ shift_id: 1 }); // sort by ca 1, 2, 3, 4
+    const result = shifts.map(shift => ({
+      shiftId: shift.shift_id,
+      name: shift.name,
+      secretCode: shift.secretCode,
+    }));
+    res.json({ shifts: result });
+  } catch (err) {
+    console.error("Lỗi khi lấy tất cả mã:", err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
 
 module.exports = router;

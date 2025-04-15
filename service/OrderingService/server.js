@@ -27,5 +27,5 @@ app.use('/api/orderdetails', orderDetailRoutes);
 
 // Khởi chạy server
 app.listen(PORT, () => {
-    console.log(`🚀 OrderingService chạy trên cổng ${PORT}`);
+    console.log(`OrderingService chạy trên cổng ${PORT}`);
 });

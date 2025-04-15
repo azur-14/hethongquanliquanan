@@ -192,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         Row(
                           children: [
-                            if (currentRole == "Nhân viên phục vụ")
+                            if (currentRole == "Nhân viên phục vụ" || currentRole == "Quản lý")
                               ElevatedButton.icon(
                                 onPressed: _handleLockUnlock,
                                 icon: Icon(Icons.lock),
@@ -469,7 +469,7 @@ class _HomeScreenState extends State<HomeScreen> {
         orderNote = "";
       });
     } else {
-      print("❌ Đặt món thất bại: ${response.body}");
+      print("Đặt món thất bại: ${response.body}");
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text("Đặt món thất bại."),
         backgroundColor: Colors.red,
@@ -506,17 +506,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<String?> fetchSecretCode() async {
     try {
-      final uri = Uri.parse("http://localhost:3002/api/codes");
+      final uri = Uri.parse("http://localhost:3002/api/shifts/secret-codes/current-shift");
       final response = await http.get(uri);
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print("Ca hiện tại: ${data['shiftName']}");
         return data['secretCode'];
       } else {
-        print("❌ Lỗi server: ${response.statusCode}");
+        print("Lỗi server: ${response.statusCode}");
         return null;
       }
     } catch (e) {
-      print("❌ Lỗi kết nối: $e");
+      print("Lỗi kết nối khi lấy mã bí mật: $e");
       return null;
     }
   }
@@ -531,10 +533,10 @@ class _HomeScreenState extends State<HomeScreen> {
           filters = ['Tất cả', ...data.map((item) => item['name'].toString()).toList()];
         });
       } else {
-        print("❌ Lỗi khi lấy category: ${response.statusCode}");
+        print("Lỗi khi lấy category: ${response.statusCode}");
       }
     } catch (e) {
-      print("❌ Lỗi kết nối khi lấy category: $e");
+      print("Lỗi kết nối khi lấy category: $e");
     }
   }
 }

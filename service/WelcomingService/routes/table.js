@@ -48,7 +48,7 @@ router.patch('/:tableId', async (req, res) => {
   
       res.status(200).json(updated);
     } catch (err) {
-      console.error("❌ Lỗi cập nhật trạng thái bàn:", err);
+      console.error("Lỗi cập nhật trạng thái bàn:", err);
       res.status(500).json({ error: 'Lỗi server' });
     }
 });

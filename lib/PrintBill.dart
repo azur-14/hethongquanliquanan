@@ -131,7 +131,7 @@ Future<void> generateAndSavePdf(
     html.Url.revokeObjectUrl(url);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("✅ Đã tải file PDF xuống.")),
+      const SnackBar(content: Text("Đã tải file PDF xuống.")),
     );
   } else {
     final dir = await getApplicationDocumentsDirectory();
@@ -139,7 +139,7 @@ Future<void> generateAndSavePdf(
     await file.writeAsBytes(bytes);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("✅ Đã lưu file PDF: ${file.path}")),
+      SnackBar(content: Text("Đã lưu file PDF: ${file.path}")),
     );
   }
 }

@@ -163,10 +163,10 @@ class _KitchenOrderScreenState extends State<KitchenOrderScreen> {
                                   body: jsonEncode({'status': detail.status}),
                                 );
                                 if (response.statusCode != 200) {
-                                  print('❌ Cập nhật trạng thái thất bại');
+                                  print('Cập nhật trạng thái thất bại');
                                 }
                               } catch (e) {
-                                print('❌ Lỗi kết nối khi cập nhật trạng thái: $e');
+                                print('Lỗi kết nối khi cập nhật trạng thái: $e');
                               }
                             },
                           );

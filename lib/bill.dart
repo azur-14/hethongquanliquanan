@@ -117,14 +117,14 @@ class _BillScreenState extends State<BillScreen> {
         final data = jsonDecode(response.body);
         return Bill.fromJson(data);
       } else if (response.statusCode == 404) {
-        print("⚠️ Không tìm thấy hóa đơn cho bàn $tableId");
+        print("Không tìm thấy hóa đơn cho bàn $tableId");
         return null;
       } else {
-        print("❌ Lỗi server: ${response.statusCode}");
+        print("Lỗi server: ${response.statusCode}");
         return null;
       }
     } catch (e) {
-      print("❌ Lỗi kết nối đến API: $e");
+      print("Lỗi kết nối đến API: $e");
       return null;
     }
   }
@@ -139,10 +139,10 @@ class _BillScreenState extends State<BillScreen> {
         body: jsonEncode({'status': "completed"}),
       );
       if (response.statusCode != 200) {
-        print('❌ Cập nhật trạng thái thất bại');
+        print('Cập nhật trạng thái thất bại');
       }
     } catch (e) {
-      print('❌ Lỗi kết nối khi cập nhật trạng thái: $e');
+      print('Lỗi kết nối khi cập nhật trạng thái: $e');
     }
   }
 
@@ -157,12 +157,12 @@ class _BillScreenState extends State<BillScreen> {
       );
 
       if (response.statusCode == 200) {
-        print('✅ Bàn đã được chuyển về trạng thái chưa sử dụng');
+        print('Bàn đã được chuyển về trạng thái chưa sử dụng');
       } else {
-        print('❌ Không thể cập nhật trạng thái bàn: ${response.statusCode}');
+        print('Không thể cập nhật trạng thái bàn: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Lỗi kết nối khi cập nhật trạng thái bàn: $e');
+      print('Lỗi kết nối khi cập nhật trạng thái bàn: $e');
     }
   }
 

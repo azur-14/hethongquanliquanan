@@ -23,5 +23,5 @@ app.use('/api/users', userRoutes);
 
 // Khởi chạy server
 app.listen(PORT, () => {
-    console.log(`🚀 OrderingService chạy trên cổng ${PORT}`);
+    console.log(`WelcomingService chạy trên cổng ${PORT}`);
 });

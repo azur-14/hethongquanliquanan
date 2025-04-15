@@ -109,7 +109,7 @@ class _OrderPageState extends State<OrderPage> {
                   ),
 
                   // Nút xuất hóa đơn
-                  if ((widget.role == "Nhân viên phục vụ" || widget.role == "Quản lý") && allReady)
+                  if ((widget.role == "Nhân viên phục vụ" || widget.role == "Quản lý") && allReady && orderItems.isNotEmpty)
                     Align(
                       alignment: Alignment.centerRight,
                       child: ElevatedButton.icon(

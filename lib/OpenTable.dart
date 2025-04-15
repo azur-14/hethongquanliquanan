@@ -21,7 +21,7 @@ class _OpenTableScreenState extends State<OpenTableScreen> {
 
   void _returnOpenedTables() {
     List<TableList> opened = tables.where((t) => t.status == true).toList();
-    Navigator.pop(context, opened); // ✅ truyền đúng kiểu List<TableList>
+    Navigator.pop(context, opened);
   }
 
   @override

@@ -195,7 +195,7 @@ router.get('/bill/:tableId', async (req, res) => {
       details: detailsWithFood,
     });
   } catch (error) {
-    console.error('🔥 Lỗi khi lấy đơn hàng theo tableId:', error);
+    console.error('Lỗi khi lấy đơn hàng theo tableId:', error);
     res.status(500).json({ error: 'Lỗi server' });
   }
 });
@@ -257,7 +257,7 @@ router.get('/completed', async (req, res) => {
 
     res.json(orders);
   } catch (error) {
-    console.error("❌ Lỗi khi lọc hóa đơn:", error);
+    console.error("Lỗi khi lọc hóa đơn:", error);
     res.status(500).json({ message: 'Lỗi server', error: error.message });
   }
 });
@@ -282,7 +282,7 @@ router.put('/:orderId/status', async (req, res) => {
   
       res.json({ message: 'Cập nhật trạng thái thành công.', order: updatedOrder });
     } catch (error) {
-      console.error("❌ Lỗi khi cập nhật trạng thái đơn hàng:", error);
+      console.error("Lỗi khi cập nhật trạng thái đơn hàng:", error);
       res.status(500).json({ error: 'Lỗi server khi cập nhật trạng thái.' });
     }
 });

@@ -6,17 +6,17 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class Shift {
-  final int id;
+  final int shiftId;
   final String name;
-  String secretCode;
+  final String secretCode;
 
-  Shift({required this.id, required this.name, required this.secretCode});
+  Shift({required this.shiftId, required this.name, required this.secretCode});
 
   factory Shift.fromJson(Map<String, dynamic> json) {
     return Shift(
-      id: json['shift_id'],
+      shiftId: json['shiftId'],
       name: json['name'],
-      secretCode: json['secretCode'] ?? '-----',
+      secretCode: json['secretCode'],
     );
   }
 }
@@ -34,7 +34,7 @@ class _GenerateSecretCodeState extends State<GenerateSecretCode> {
   @override
   void initState() {
     super.initState();
-    generateNewSecretCodes();
+    fetchAllSecretCodes();
   }
 
   Future<void> generateNewSecretCodes() async {
@@ -50,11 +50,11 @@ class _GenerateSecretCodeState extends State<GenerateSecretCode> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print("✅ Cập nhật thành công các secretCode:");
+        print("Cập nhật thành công các secretCode:");
 
         final List<Shift> fetchedShifts = data['shifts'].map<Shift>((json) {
           return Shift(
-            id: json['shift_id'],
+            shiftId: (json['shift_id']),
             name: json['name'],
             secretCode: json['newSecretCode'] ?? '-----',
           );
@@ -65,35 +65,33 @@ class _GenerateSecretCodeState extends State<GenerateSecretCode> {
         });
 
       } else {
-        print("❌ Lỗi khi cập nhật secretCode: ${response.statusCode}");
+        print("Lỗi khi cập nhật secretCode: ${response.statusCode}");
       }
     } catch (e) {
-      print("❌ Lỗi kết nối tới API: $e");
+      print("Lỗi kết nối tới API: $e");
     }
   }
 
   Future<void> fetchAllSecretCodes() async {
     try {
-      final uri = Uri.parse("http://localhost:3002/api/shifts/secret-codes");
-
+      final uri = Uri.parse("http://localhost:3002/api/shifts/secret-codes/all");
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List<Shift> fetchedShifts = data['shifts'].map<Shift>((json) {
-          return Shift.fromJson(json);
-        }).toList();
+        final shifts = data['shifts'] as List;
 
         setState(() {
-          allShifts = fetchedShifts;
+          allShifts = shifts.map((e) => Shift.fromJson(e)).toList();
         });
       } else {
-        print("❌ Lỗi khi lấy danh sách secretCode: ${response.statusCode}");
+        print("Lỗi server khi lấy secretCode: ${response.statusCode}");
       }
     } catch (e) {
-      print("❌ Lỗi kết nối khi lấy secretCode: $e");
+      print("Lỗi kết nối tới API: $e");
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

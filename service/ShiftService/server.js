@@ -20,5 +20,5 @@ app.use('/api/shifts', shiftRoutes);
 
 // Khởi chạy server
 app.listen(PORT, () => {
-    console.log(`🚀 ShiftService chạy trên cổng ${PORT}`);
+    console.log(`ShiftService chạy trên cổng ${PORT}`);
 });

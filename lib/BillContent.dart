@@ -159,33 +159,34 @@ class _BillContentState extends State<BillContent> {
                   ),
                 ),
               const SizedBox(width: 12),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.print, color: Colors.white),
-                label: const Text("Xuất hóa đơn",
-                    style: TextStyle(color: Colors.white)),
-                onPressed: () async {
-                  print("👉 Đang tạo file PDF...");
-                  await generateAndSavePdf(
-                    context,
-                    billId: widget.billId,
-                    tableName: widget.tableName,
-                    orderedItems: widget.orderedItems,
-                    subtotal: widget.subtotal,
-                    tax: widget.tax,
-                    discountPercent: discountPercent,
-                  );
-                  print("✅ File đã tạo xong");
-                },
+              if (isCompleted)
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.print, color: Colors.white),
+                  label: const Text("Xuất hóa đơn",
+                      style: TextStyle(color: Colors.white)),
+                  onPressed: () async {
+                    print("👉 Đang tạo file PDF...");
+                    await generateAndSavePdf(
+                      context,
+                      billId: widget.billId,
+                      tableName: widget.tableName,
+                      orderedItems: widget.orderedItems,
+                      subtotal: widget.subtotal,
+                      tax: widget.tax,
+                      discountPercent: discountPercent,
+                    );
+                    print("✅ File đã tạo xong");
+                  },
 
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  elevation: 5,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 5,
+                  ),
                 ),
-              ),
             ],
           ),
         ],

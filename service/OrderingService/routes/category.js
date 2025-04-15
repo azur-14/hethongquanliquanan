@@ -3,7 +3,7 @@ const Category = require('../models/Category');
 
 const router = express.Router();
 
-// 📌 API Lấy danh sách danh mục
+// API Lấy danh sách danh mục
 router.get('/', async (req, res) => {
     try {
         const categories = await Category.find();
@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// 📌 API Tạo danh mục mới
+// API Tạo danh mục mới
 router.post('/create', async (req, res) => {
     try {
         const { name, description } = req.body;
@@ -53,7 +53,7 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// 📌 API Xóa danh mục theo ID
+// API Xóa danh mục theo ID
 router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
