@@ -4,6 +4,25 @@ const DonHang = require('../models/Order');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: OrderDetails
+ *   description: API quản lý chi tiết đơn hàng
+ */
+
+/**
+ * @swagger
+ * /api/orderdetails:
+ *   get:
+ *     summary: Lấy tất cả chi tiết đơn hàng kèm tên món ăn
+ *     tags: [OrderDetails]
+ *     responses:
+ *       200:
+ *         description: Danh sách chi tiết đơn hàng
+ *       500:
+ *         description: Lỗi khi lấy danh sách chi tiết đơn hàng
+ */
 // Lấy tất cả chi tiết đơn hàng kèm tên món ăn
 router.get('/', async (req, res) => {
     try {
@@ -14,6 +33,24 @@ router.get('/', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/orderdetails/table/{tableId}:
+ *   get:
+ *     summary: Lấy danh sách OrderDetail theo tableId với đơn hàng đang pending
+ *     tags: [OrderDetails]
+ *     parameters:
+ *       - in: path
+ *         name: tableId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Danh sách OrderDetail theo bàn
+ *       500:
+ *         description: Lỗi server khi lấy chi tiết đơn hàng theo bàn
+ */
 // GET: Lấy danh sách OrderDetail theo tableId (chỉ đơn hàng pending) (orderPage)
 router.get('/table/:tableId', async (req, res) => {
     try {
@@ -45,6 +82,33 @@ router.get('/table/:tableId', async (req, res) => {
     }
 });
   
+/**
+ * @swagger
+ * /api/orderdetails/{id}/status:
+ *   put:
+ *     summary: Cập nhật trạng thái của một mục chi tiết đơn hàng
+ *     tags: [OrderDetails]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Cập nhật trạng thái thành công
+ *       500:
+ *         description: Lỗi cập nhật trạng thái
+ */
 //Cập nhật trạng thái ctdh (kicthenOrder)
 router.put('/:id/status', async (req, res) => {
     const { status } = req.body;

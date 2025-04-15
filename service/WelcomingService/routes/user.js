@@ -2,6 +2,18 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 
+/**
+ * @swagger
+ * /api/users/password/admin:
+ *   get:
+ *     summary: Lấy mật khẩu tài khoản quản lý (manager)
+ *     tags: [User]
+ *     responses:
+ *       200:
+ *         description: Trả về mật khẩu admin
+ *       404:
+ *         description: Không tìm thấy quản lý
+ */
 // (welcome)
 router.get('/password/admin', async (req, res) => {
     try {

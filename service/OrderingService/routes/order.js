@@ -7,6 +7,25 @@ const axios = require('axios');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Orders
+ *   description: API quản lý đơn hàng
+ */
+
+/**
+ * @swagger
+ * /api/orders:
+ *   get:
+ *     summary: Lấy danh sách đơn hàng
+ *     tags: [Orders]
+ *     responses:
+ *       200:
+ *         description: Danh sách đơn hàng
+ *       500:
+ *         description: Lỗi server
+ */
 // API lấy danh sách đơn hàng
 router.get('/', async (req, res) => {
     try {
@@ -17,6 +36,42 @@ router.get('/', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/orders/create:
+ *   post:
+ *     summary: Tạo đơn hàng hoặc cập nhật nếu đã tồn tại
+ *     tags: [Orders]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               tableId:
+ *                 type: integer
+ *               note:
+ *                 type: string
+ *               cart:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     foodId:
+ *                       type: string
+ *                     quantity:
+ *                       type: number
+ *                     price:
+ *                       type: number
+ *                     ne:
+ *                       type: string
+ *     responses:
+ *       201:
+ *         description: Đơn hàng đã được tạo hoặc cập nhật
+ *       500:
+ *         description: Lỗi khi tạo hoặc cập nhật đơn hàng
+ */
 // API tạo đơn hàng (mỗi bàn chỉ có duy nhất 1 đơn hàng pending, nếu đã tồn tại thì chỉ thêm món vào OrderDetail) (menu)
 router.post('/create', async (req, res) => {
   try {
@@ -111,6 +166,18 @@ router.post('/create', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/orders/pending-with-details:
+ *   get:
+ *     summary: Lấy danh sách đơn hàng đang chờ và chi tiết của chúng
+ *     tags: [Orders]
+ *     responses:
+ *       200:
+ *         description: Danh sách đơn hàng đang chờ
+ *       500:
+ *         description: Lỗi server
+ */
 //Lấy danh sách đơn hàng có trạng thái pending và orderDetails của nó (kitchenOrder)
 router.get('/pending-with-details', async (req, res) => {
     try {
@@ -140,7 +207,34 @@ router.get('/pending-with-details', async (req, res) => {
     }
 });
   
-  
+/**
+ * @swagger
+ * /api/orders/bill/{tableId}:
+ *   get:
+ *     summary: Lấy đơn hàng theo tableId hoặc orderId
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: tableId
+ *         schema:
+ *           type: string
+ *         required: true
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Trạng thái đơn hàng (pending, completed,...)
+ *       - in: query
+ *         name: orderId
+ *         schema:
+ *           type: string
+ *         description: Mã đơn hàng cụ thể
+ *     responses:
+ *       200:
+ *         description: Chi tiết đơn hàng
+ *       404:
+ *         description: Không tìm thấy đơn hàng
+ */
 // GET: Đơn hàng theo tableId và trạng thái hoặc orderId (bill)
 router.get('/bill/:tableId', async (req, res) => {
   try {
@@ -200,6 +294,35 @@ router.get('/bill/:tableId', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/orders/completed:
+ *   get:
+ *     summary: Lọc danh sách đơn hàng hoàn tất theo thời gian và ca
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: query
+ *         name: fromDate
+ *         schema:
+ *           type: string
+ *         required: true
+ *       - in: query
+ *         name: toDate
+ *         schema:
+ *           type: string
+ *         required: true
+ *       - in: query
+ *         name: shiftId
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Danh sách đơn hàng hoàn tất theo điều kiện lọc
+ *       400:
+ *         description: Thiếu thông tin ngày
+ *       500:
+ *         description: Lỗi server
+ */
 // GET: Lấy danh sách các đơn hàng có trạng thái completed (thongke)
 router.get('/completed', async (req, res) => {
   try {
@@ -262,6 +385,26 @@ router.get('/completed', async (req, res) => {
   }
 });
   
+/**
+ * @swagger
+ * /api/orders/{orderId}/status:
+ *   put:
+ *     summary: Cập nhật trạng thái đơn hàng thành completed
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *       404:
+ *         description: Không tìm thấy đơn hàng
+ *       500:
+ *         description: Lỗi server khi cập nhật trạng thái
+ */
 // Cập nhật trạng thái đơn hàng thành completed (bill)
 router.put('/:orderId/status', async (req, res) => {
     try {

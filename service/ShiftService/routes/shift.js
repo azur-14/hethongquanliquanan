@@ -3,6 +3,23 @@ const Shift = require('../models/Shift');
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Shifts
+ *   description: API cho ca làm việc
+ */
+
+/**
+ * @swagger
+ * /api/shift:
+ *   get:
+ *     summary: Lấy tất cả ca làm việc
+ *     tags: [Shifts]
+ *     responses:
+ *       200:
+ *         description: Danh sách các ca làm việc
+ */
 // Lấy tất cả ca làm việc (thongke)
 router.get('/', async (req, res) => {
     try {
@@ -13,6 +30,25 @@ router.get('/', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/shift/by-time:
+ *   get:
+ *     summary: Tìm ca làm việc theo thời gian cụ thể
+ *     tags: [Shifts]
+ *     parameters:
+ *       - in: query
+ *         name: time
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Thời gian định dạng ISO string
+ *     responses:
+ *       200:
+ *         description: Trả về tên ca làm việc phù hợp
+ *       404:
+ *         description: Không tìm thấy ca phù hợp
+ */
 // (thongke)
 router.get('/by-time', async (req, res) => {
     try {
@@ -46,6 +82,24 @@ router.get('/by-time', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/shift/{id}:
+ *   get:
+ *     summary: Lấy thông tin ca theo shift_id
+ *     tags: [Shifts]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Chi tiết ca làm việc
+ *       404:
+ *         description: Không tìm thấy ca làm việc
+ */
 // (order.js /completed)
 router.get('/:id', async (req, res) => {
   try {
@@ -63,6 +117,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
 // Hàm tạo mã bí mật ngẫu nhiên (6 ký tự)
 function generateSecretCode(length = 6) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -72,8 +127,20 @@ function generateSecretCode(length = 6) {
     }
     return code;
 }
-  
-  // PUT: Cập nhật lại secretCode ngẫu nhiên cho toàn bộ ca (generalizeSecretCode)
+
+/**
+ * @swagger
+ * /api/shift/generate-secret-codes:
+ *   put:
+ *     summary: Cập nhật mã bí mật ngẫu nhiên cho tất cả các ca
+ *     tags: [Shifts]
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *       500:
+ *         description: Lỗi server
+ */
+// PUT: Cập nhật lại secretCode ngẫu nhiên cho toàn bộ ca (generalizeSecretCode)
 router.put('/generate-secret-codes', async (req, res) => {
     try {
       const shifts = await Shift.find();
@@ -102,6 +169,18 @@ router.put('/generate-secret-codes', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/shift/secret-codes/current-shift:
+ *   get:
+ *     summary: Lấy mã bí mật của ca hiện tại
+ *     tags: [Shifts]
+ *     responses:
+ *       200:
+ *         description: Mã bí mật của ca hiện tại
+ *       404:
+ *         description: Không có ca nào đang hoạt động
+ */
 // GET /api/codes/current-shift (menu)
 router.get('/secret-codes/current-shift', async (req, res) => {
   try {
@@ -133,6 +212,16 @@ router.get('/secret-codes/current-shift', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/shift/secret-codes/all:
+ *   get:
+ *     summary: Lấy tất cả mã bí mật của các ca
+ *     tags: [Shifts]
+ *     responses:
+ *       200:
+ *         description: Danh sách mã bí mật theo ca
+ */
 // GET: /api/codes/all (generalizeSecretCode)
 router.get('/secret-codes/all', async (req, res) => {
   try {

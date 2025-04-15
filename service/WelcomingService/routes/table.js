@@ -2,6 +2,16 @@ const express = require('express');
 const router = express.Router();
 const Table = require('../models/Table');
 
+/**
+ * @swagger
+ * /api/table:
+ *   get:
+ *     summary: Lấy danh sách tất cả bàn
+ *     tags: [Table]
+ *     responses:
+ *       200:
+ *         description: Danh sách bàn
+ */
 // Lấy danh sách tất cả bàn (menu, openTable, orderPage)
 router.get('/', async (req, res) => {
     try {
@@ -12,6 +22,37 @@ router.get('/', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/table/{id}:
+ *   put:
+ *     summary: Cập nhật thông tin bàn theo _id
+ *     tags: [Tables]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               table_id:
+ *                 type: number
+ *               table_name:
+ *                 type: string
+ *               status:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *       404:
+ *         description: Không tìm thấy bàn
+ */
 // Cập nhật thông tin bàn (openTable)
 router.put('/:id', async (req, res) => {
     try {
@@ -33,6 +74,33 @@ router.put('/:id', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/table/{tableId}:
+ *   patch:
+ *     summary: Cập nhật trạng thái bàn theo table_id
+ *     tags: [Tables]
+ *     parameters:
+ *       - in: path
+ *         name: tableId
+ *         required: true
+ *         schema:
+ *           type: number
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Cập nhật trạng thái thành công
+ *       404:
+ *         description: Không tìm thấy bàn
+ */
 // Cập nhật trạng thái bàn theo tableId (bill)
 router.patch('/:tableId', async (req, res) => {
     try {
