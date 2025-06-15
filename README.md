@@ -1,16 +1,41 @@
-# soagiuakiquanan
+Midterm SOA - Microservice-Based Food Ordering App
 
-A new Flutter project.
+Ứng dụng đặt món ăn được xây dựng theo kiến trúc Microservice, sử dụng:
 
-## Getting Started
+- Flutter cho frontend.
+- Node.js (Express) cho backend.
+- MongoDB Atlas cho cơ sở dữ liệu.
 
-This project is a starting point for a Flutter application.
+---
+1. ⚙️ Yêu cầu hệ thống
 
-A few resources to get you started if this is your first Flutter project:
+- [Node.js](https://nodejs.org/) v14+
+- [Flutter SDK](https://flutter.dev/)
+- Thiết bị ảo hoặc thật để chạy app Flutter
+- Kết nối internet (để truy cập MongoDB Atlas)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+2.🚀 Hướng dẫn chạy ứng dụng
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+a. Bước 1: Cài đặt backend
+
+Đi tới thư mục chứa các service: cd service và chạy: 
+
+npm install express mongoose body-parser cors dotenv uuid
+npm install axios
+
+b.Bước 2: Cấu hình MongoDB
+
+Mỗi service đã được cấu hình sẵn file .env,
+Bạn không cần cài MongoDB nếu kết nối này vẫn hoạt động. Các service sẽ tự kết nối đến MongoDB Atlas.
+
+c. Bước 3: Khởi động các service
+
+Chạy từng service trong các tab terminal riêng biệt: node server.js
+
+
+d. Bước 4: Chạy ứng dụng Flutter
+
+Đi tới thư mục Flutter app:
+flutter pub get
+flutter run
+
